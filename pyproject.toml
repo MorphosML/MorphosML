@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "morphosml"
+version = "0.1.0"
+description = "MorphosML: A lightweight machine learning library built with Python and NumPy."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+authors = [
+    {name = "Gabriel Carmona"}
+]
+
+dependencies = [
+    "numpy",
+    "scipy"
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov"
+]
+
+docs = [
+    "mkdocs",
+    "mkdocs-material"
+]
+
+security = [
+    "bandit",
+    "pip-audit"
+]
+
+benchmark = [
+    "asv"
+]
+
+extras = [
+    "numba",
+    "pandas",
+    "typer"
+]
+
+all = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "mkdocs",
+    "mkdocs-material",
+    "bandit",
+    "pip-audit",
+    "asv",
+    "numba",
+    "pandas",
+    "typer"
+]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --cov=morphosml"
