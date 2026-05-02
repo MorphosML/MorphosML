@@ -1,81 +1,314 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "scikit-build-core>=0.5.0",
+    "pybind11>=2.10.0",
+    "numpy>=1.24.0",
+    "setuptools>=68",
+    "wheel"
+]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "morphosml"
-version = "0.1.0"
-description = "MorphosML: A lightweight machine learning library built with Python and NumPy."
+version = "0.2.0"
+description = "High-performance machine learning library with C++ core and Python bindings"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 license = {text = "MIT"}
 
 authors = [
-    {name = "Gabriel Carmona"}
+    {name = "Gabriel Carmona Bittencourt"}
+]
+
+keywords = ["machine-learning", "c-plus-plus", "pybind11", "knn", "linear-algebra"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 dependencies = [
-    "numpy",
-    "scipy"
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]
-
 dev = [
-    "black",
-    "ruff",
-    "mypy",
-    "pytest",
-    "pytest-cov"
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "ipython>=8.0.0",
 ]
 
 docs = [
-    "mkdocs",
-    "mkdocs-material"
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.22.0",
+    "mike>=1.1.0",  # Versioning for docs
 ]
 
 security = [
-    "bandit",
-    "pip-audit"
+    "bandit>=1.7.0",
+    "pip-audit>=2.5.0",
+    "safety>=2.3.0",
 ]
 
 benchmark = [
-    "asv"
+    "asv>=0.6.0",
+    "pytest-benchmark>=4.0.0",
 ]
 
 extras = [
-    "numba",
-    "pandas",
-    "typer"
+    "scipy>=1.10.0",  # Optional scientific computing
+    "pandas>=2.0.0",  # Optional data handling
+    "typer>=0.9.0",   # CLI interface
+    "numba>=0.57.0",  # JIT compilation for Python fallbacks
 ]
 
 all = [
-    "black",
-    "ruff",
-    "mypy",
-    "pytest",
-    "pytest-cov",
-    "mkdocs",
-    "mkdocs-material",
-    "bandit",
-    "pip-audit",
-    "asv",
-    "numba",
-    "pandas",
-    "typer"
+    # Dev tools
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "ipython>=8.0.0",
+    # Docs
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.22.0",
+    "mike>=1.1.0",
+    # Security
+    "bandit>=1.7.0",
+    "pip-audit>=2.5.0",
+    "safety>=2.3.0",
+    # Benchmark
+    "asv>=0.6.0",
+    "pytest-benchmark>=4.0.0",
+    # Extras
+    "scipy>=1.10.0",
+    "pandas>=2.0.0",
+    "typer>=0.9.0",
+    "numba>=0.57.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/gabrielcarmona/morphosml"
+Documentation = "https://morphosml.readthedocs.io"
+Repository = "https://github.com/gabrielcarmona/morphosml.git"
+Issues = "https://github.com/gabrielcarmona/morphosml/issues"
+Changelog = "https://github.com/gabrielcarmona/morphosml/releases"
+
+[project.scripts]
+morphosml = "morphosml.cli:main"
+
+[tool.scikit-build]
+# CMake configuration
+cmake.minimum-version = "3.15"
+cmake.args = [
+    "-DCMAKE_CXX_STANDARD=17",
+    "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+]
+# Build options
+wheel.expand-macos-universal-tags = true
+wheel.py-api = "pybind11"
+# Install options
+install.components = ["python_modules"]
+# Parallel builds
+ninja.make-fallback = true
 
 [tool.black]
 line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | cpp/
+)/
+'''
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I"]
+target-version = "py38"
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # complexity
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "cpp/",
+    "tests/benchmarks/",
+]
+
+[tool.ruff.isort]
+known-first-party = ["morphosml"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.8"
 strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+exclude = [
+    "build/",
+    "dist/",
+    "cpp/",
+    "tests/benchmarks/",
+]
+
+[[tool.mypy.overrides]]
+module = "morphosml._core"
+ignore_missing_imports = true  # For C++ bindings
 
 [tool.pytest.ini_options]
+minversion = "7.0"
 testpaths = ["tests"]
-addopts = "-ra --cov=morphosml"
+addopts = """
+    -ra 
+    --cov=morphosml 
+    --cov-report=html 
+    --cov-report=term 
+    --cov-report=xml
+    --benchmark-disable
+"""
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+timeout = 300
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.pytest-cov]
+paths = ["src/morphosml/"]
+omit = ["tests/*", "cpp/*", "*/_core.py"]
+report_terminals = true
+
+[tool.pytest-benchmark]
+min_rounds = 5
+min_time = 0.5
+save = true
+compare = true
+# Disable automatically, enable with --benchmark-enable
+disable = true
+
+[tool.coverage.run]
+source = ["src/morphosml"]
+omit = ["*/tests/*", "*/_core.py"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if False:",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "cpp", "build", "dist"]
+skips = ["B101", "B311"]  # Skip assert and random checks
+
+[tool.mkdocs]
+site_name = "MorphosML Documentation"
+site_description = "High-performance ML library with C++ core"
+site_author = "Gabriel Carmona"
+docs_dir = "docs"
+site_dir = "site"
+
+[tool.mkdocs-material]
+theme = "material"
+features = [
+    "navigation.tabs",
+    "navigation.sections",
+    "navigation.top",
+    "search.highlight",
+    "search.share",
+    "content.code.copy",
+]
+
+[tool.asv]
+version = 1
+project = "morphosml"
+project_url = "https://github.com/gabrielcarmona/morphosml"
+repo = "."
+branches = ["main", "0.2.0"]
+benchmark_dir = "benchmarks"
+results_dir = ".asv_results"
+html_dir = ".asv_html"
+matrix = {
+    "numpy": ["1.24.0"],
+    "python": ["3.8", "3.9", "3.10", "3.11"],
+}
+requirements = [
+    "numpy",
+    "pybind11",
+]
+
+[tool.cibuildwheel]
+# Build wheels for multiple platforms
+build = "cp38-* cp39-* cp310-* cp311-*"
+archs = "auto"
+manylinux-x86_64-image = "manylinux2014"
+test-command = "pytest {project}/tests"
+test-requires = ["pytest", "numpy"]
+
+[tool.bumpversion]
+current_version = "0.2.0"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+commit_message = "chore: bump version to {new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "CMakeLists.txt"
+
+[[tool.bumpversion.files]]
+filename = "src/morphosml/__init__.py"
