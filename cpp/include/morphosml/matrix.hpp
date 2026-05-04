@@ -3,16 +3,18 @@
 #include <vector>
 #include <stdexcept>
 #include "vector.hpp"
+#include <random>
+#include <iostream>
 
 namespace morphosml {
 
 class Matrix {
     private:
     std::vector<std::vector<double>> data_;
-    size_t rows,cols;
+    size_t n_rows,n_cols;
     
     void validate() const {
-        if (data_.size() != rows * cols) {
+        if (data_.size() != n_rows * n_cols) {
         throw std::logic_error("Invalid matrix dimensions");
     }}
     
@@ -22,16 +24,16 @@ class Matrix {
     public: 
 
     // Constructors
-    Matrix() : rows(0), cols(0) {}
-    Matrix(size_t rows, size_t cols);
+    Matrix() : n_rows(0), n_cols(0) {}
+    Matrix(size_t n_rows, size_t n_cols);
     Matrix(std::initializer_list<std::initializer_list<double>> list);
 
     // Accessors
     size_t rows() const {
-        return rows;
+        return n_rows;
     }
     size_t cols() const {
-        return cols;
+        return n_cols;
     }
      
     double& operator()(size_t i , size_t t);
@@ -52,6 +54,8 @@ class Matrix {
     // Utility
     void print() const;
     std::vector<std::vector<double>> to_std() const {return data_ ; } // Fixed semicolon
+
+    // System solvers (0.3.0)
 
 };
 }

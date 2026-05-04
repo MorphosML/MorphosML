@@ -18,6 +18,14 @@ namespace morphosml {
         // Same as Vector() {}
         Vector() = default; 
 
+        // Copy
+        Vector(const Vector&) = default;
+        Vector& operator=(const Vector&) = default;
+
+        // Move
+        Vector(Vector&&) noexcept = default;
+        Vector& operator=(const Vector&) = default;
+
         // Constructor initializes data_ with n elements, setting them to 0.0
         explicit Vector(size_t n) :  data_(n,0.0) {}
 
@@ -32,6 +40,7 @@ namespace morphosml {
         double& operator[](size_t i) { return data_[i]; }
         const double& operator[](size_t i) const { return data_[i]; }
 
+        // Safety acess
         double& at(size_t i) {
             if ( i>= data_.size() ) throw std::out_of_range("Index out of range");
             return data_[i];
@@ -55,7 +64,10 @@ namespace morphosml {
         void print() const;
         
         // Returns a copy of the internal data as a std::vector
-        std::vector<double> to_std() const { return data_; }
+        const std::vector<double>& data() const { return data_; } 
+
+        // Avoids copying when returning large vectors
+        Vector(std::vector<double>&& vec) noexcept : data_(std::move(vec)) {}
 };
 
 } // namespace morphosml
