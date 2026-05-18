@@ -24,7 +24,7 @@ namespace morphosml {
 
         // Move
         Vector(Vector&&) noexcept = default;
-        Vector& operator=(const Vector&) = default;
+        Vector& operator=(Vector&&) noexcept = default;
 
         // Constructor initializes data_ with n elements, setting them to 0.0
         explicit Vector(size_t n) :  data_(n,0.0) {}

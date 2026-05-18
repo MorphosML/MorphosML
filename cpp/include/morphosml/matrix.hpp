@@ -35,13 +35,17 @@ class Matrix {
     size_t cols() const {
         return n_cols;
     }
-     
+    
+    size_t size () const {return data_.size();} ;
+
     double& operator()(size_t i , size_t t);
     const double& operator()(size_t i , size_t t) const;
 
     // Core operations
 
     Matrix transpose() const;
+    Matrix operator+(const Matrix& other) const;
+    Matrix operator-(const Matrix& other) const;
     Matrix operator*(const Matrix& other) const;
     Vector operator*(const Vector& vec) const;
 
