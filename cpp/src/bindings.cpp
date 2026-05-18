@@ -1,42 +1,34 @@
-// #if defined(__has_include)
-// #  if __has_include(<pybind11/pybind11.h>)
-// #    include <pybind11/pybind11.h>
-// #  elif __has_include("pybind11/pybind11.h")
-// #    include "pybind11/pybind11.h"
-// #  else
-// #    error "pybind11 header not found. Adjust includePath to point to pybind11."
-// #  endif
-// #else
-// #  include <pybind11/pybind11.h>
-// #endif
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include "morphosml/vector.hpp"
+#include "morphosml/matrix.hpp"
+#include "morphosml/knn.hpp"
+#include "morphosml/metrics.hpp"
 
-// #if defined(__has_include)
-// #  if __has_include(<pybind11/stl.h>)
-// #    include <pybind11/stl.h>
-// #  elif __has_include("pybind11/stl.h")
-// #    include "pybind11/stl.h"
-// #  else
-// #    error "pybind11 stl header not found. Adjust includePath to point to pybind11."
-// #  endif
-// #else
-// #  include <pybind11/stl.h>
-// #endif
+namespace py = pybind11;
 
-// #if defined(__has_include)
-// #  if __has_include(<pybind11/numpy.h>)
-// #    include <pybind11/numpy.h>
-// #  elif __has_include("pybind11/numpy.h")
-// #    include "pybind11/numpy.h"
-// #  else
-// #    error "pybind11 numpy header not found. Adjust includePath to point to pybind11."
-// #  endif
-// #else
-// #  include <pybind11/numpy.h>
-// #endif
+morphosml::Matrix numpy_to_matrix(py::array_t<double> arr) {
 
-// #include "morphosml/vector.hpp"
-// #include "morphosml/matrix.hpp"
-// #include "morphosml/model.hpp"
-// #include "morphosml/metrics.hpp"
+    py::buffer_info buf =
+        const_cast<py::array_t<double>&>(arr).request();
 
-// namespace py = pybind11;
+    if (buf.ndim != 2) {
+        throw std::runtime_error("The array needs to be 2D.");
+    }
+
+    morphosml::Matrix result(buf.shape[0], buf.shape[1]);
+
+    double* ptr = static_cast<double*>(buf.ptr);
+
+    for (size_t i = 0; i < static_cast<size_t>(buf.shape[0]); ++i) {
+
+        for (size_t j = 0; j < static_cast<size_t>(buf.shape[1]); ++j) {
+
+            result(i, j) =
+                ptr[i * buf.shape[1] + j];
+        }
+    }
+
+    return result;
+}

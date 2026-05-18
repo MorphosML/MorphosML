@@ -26,7 +26,9 @@ namespace morphosml {
 
         void fit(const Matrix& X, const std::vector<int>& y) override;
         std::vector<int> predict(const Matrix& X) const override;
-
+        // Get for k (Python bindings)
+        int get_k() const {return k_;};
+        
     private:
         int predict_single(const Vector& x) const;
         double euclidean_distance(const Vector& a, const Vector& b) const;

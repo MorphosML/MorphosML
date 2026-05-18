@@ -163,3 +163,6 @@ jobs:
         name: morphosml-wheels
         path: dist/
         retention-days: 7
+
+
+# change the way the dependencies are installed (optim)

@@ -49,10 +49,70 @@ namespace morphosml {
     }
     return result;}
 
+    Matrix Matrix::operator+(const Matrix& other) const {
+
+        if (n_rows != other.n_rows || n_cols != other.n_cols) {
+            throw std::invalid_argument(
+                "Matrices must have the same dimensions."
+            );
+        }
+
+        Matrix result(n_rows, n_cols);
+
+        for (size_t i = 0; i < n_rows; ++i) {
+
+            for (size_t j = 0; j < n_cols; ++j) {
+
+                result(i, j) =
+                    data_[i][j] + other(i, j);
+            }
+        }
+
+        return result;
+    }
+
+    Matrix Matrix::operator-(const Matrix& other) const {
+
+        if (n_rows != other.n_rows || n_cols != other.n_cols) {
+            throw std::invalid_argument("Matrices should be same dimensions.");
+        }
+
+        Matrix result(n_rows,n_cols);
+
+        for (size_t i = 0; i < n_rows; i++) {
+
+            for (size_t j = 0; j < n_cols; ++ j) {
+
+                result(i,j) = 
+                    data_[i][j] - other(i,j);
+            }
+        } 
+        return result;
+    } // continue from here
+
+    Matrix Matrix::operator*(const Matrix& other) const {
+        if (n_cols != other.n_rows) {
+            throw std::invalid_argument("Number of cols from the first");
+        }
+        Matrix result(n_rows, other.n_cols); 
+
+        for (size_t i = 0; i < n_rows; i++ ) {
+            for (size_t j = 0; j < other.n_cols; j++) {
+                double sum = 0.0;
+                for (size_t k = 0; k < n_cols; ++k) {
+                sum += data_[i][k] * other(k, j);
+            }
+            result(i, j) = sum;
+            }
+        }
+        return result;
+    }
+
     Vector Matrix::operator*(const Vector& vec) const {
     if (n_cols != vec.size()) {
         throw std::invalid_argument("Matrix columns must match vector size");
     }
+
     Vector result(n_rows);
     for (size_t i = 0; i < n_rows; ++i) {
         double sum = 0.0;
@@ -92,7 +152,7 @@ namespace morphosml {
     Matrix result(rows, cols);
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-1.0, 1.0);
+    std::uniform_real_distribution<> dis(-1.0, 1.0); // variation between -1.0 and 1 
     
     for (size_t i = 0; i < rows; ++i) {
         for (size_t j = 0; j < cols; ++j) {
