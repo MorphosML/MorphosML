@@ -1,4 +1,4 @@
-#include "matrix.hpp"
+#include "morphosml/matrix.hpp"
 
 namespace morphosml {
     Matrix::Matrix(size_t rows, size_t cols) : n_rows(rows),n_cols(cols), data_(rows,std::vector<double>(cols,0.0)) {}
@@ -27,6 +27,14 @@ namespace morphosml {
         
     }}
 
+    Matrix::Matrix(
+        const std::vector<std::vector<double>>& data
+    )
+        : data_(data),
+          n_rows(data.size()),
+          n_cols(data.empty()? 0 : data[0].size())
+    {}
+
     double& Matrix::operator()(size_t i ,size_t j){
         if (i >= n_rows || j >= n_cols){
             throw std::out_of_range("Matrix index out of bounds");
@@ -41,7 +49,7 @@ namespace morphosml {
     return data_[i][j];}
 
     Matrix Matrix::transpose() const {
-    Matrix result(n_rows, n_cols);
+    Matrix result(n_cols, n_rows); // the result have the tranpose structure
     for (size_t i = 0; i < n_rows; ++i) {
         for (size_t j = 0; j < n_cols; ++j) {
             result(j, i) = data_[i][j];

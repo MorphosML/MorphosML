@@ -29,6 +29,11 @@ namespace morphosml {
         // Constructor initializes data_ with n elements, setting them to 0.0
         explicit Vector(size_t n) :  data_(n,0.0) {}
 
+        // to_std()    
+        std::vector<double> to_std() const {
+            return data_;
+        }
+
         Vector(std::initializer_list<double> list) : data_(list) {}
 
         Vector(const std::vector<double>& vec) : data_(vec) {}
@@ -67,11 +72,8 @@ namespace morphosml {
         const std::vector<double>& data() const { return data_; } 
 
         // Avoids copying when returning large vectors
-        Vector(std::vector<double>&& vec) noexcept : data_(std::move(vec)) {}
-};
-
-} // namespace morphosml
-
-
-
+        Vector(std::vector<double>&& vec) noexcept 
+            : data_(std::move(vec)) {} 
+    };
+    }// namespace morphosml
 #endif

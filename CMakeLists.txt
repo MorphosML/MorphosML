@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON) # Compile anywhere 'PIC'
 
+# Compiler options for make it more readable
+set(CMAKE_CXX_COMPILER clang++)
+
+add_compile_options(-fdiagnostics-color=always
+        -ferror-limit=3
+        -fdiagnostics-show-template-tree)
+
 # Find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 

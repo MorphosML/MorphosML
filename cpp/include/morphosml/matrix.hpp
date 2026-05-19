@@ -27,6 +27,7 @@ class Matrix {
     Matrix() : n_rows(0), n_cols(0) {}
     Matrix(size_t n_rows, size_t n_cols);
     Matrix(std::initializer_list<std::initializer_list<double>> list);
+    Matrix(const std::vector<std::vector<double>>& data);
 
     // Accessors
     size_t rows() const {
