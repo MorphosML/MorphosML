@@ -27,6 +27,14 @@ namespace morphosml {
         
     }}
 
+    Matrix::Matrix(
+        const std::vector<std::vector<double>>& data
+    )
+        : data_(data),
+          n_rows(data.size()),
+          n_cols(data.empty()? 0 : data[0].size())
+    {}
+
     double& Matrix::operator()(size_t i ,size_t j){
         if (i >= n_rows || j >= n_cols){
             throw std::out_of_range("Matrix index out of bounds");
