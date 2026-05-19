@@ -1,4 +1,4 @@
-#include "matrix.hpp"
+#include "morphosml/matrix.hpp"
 
 namespace morphosml {
     Matrix::Matrix(size_t rows, size_t cols) : n_rows(rows),n_cols(cols), data_(rows,std::vector<double>(cols,0.0)) {}
@@ -41,7 +41,7 @@ namespace morphosml {
     return data_[i][j];}
 
     Matrix Matrix::transpose() const {
-    Matrix result(n_rows, n_cols);
+    Matrix result(n_cols, n_rows); // the result have the tranpose structure
     for (size_t i = 0; i < n_rows; ++i) {
         for (size_t j = 0; j < n_cols; ++j) {
             result(j, i) = data_[i][j];

@@ -16,7 +16,7 @@ namespace morphosml {
         struct DistanceIndex {
             double distance;
             int index;
-            bool operator<(const DistanceIndex& other){
+            bool operator<(const DistanceIndex& other) const { // doest not change the object
                 return distance < other.distance;
             }
         };
@@ -25,10 +25,10 @@ namespace morphosml {
         explicit KNN(int k=3) : k_(k){}
 
         void fit(const Matrix& X, const std::vector<int>& y) override;
-        std::vector<int> predict(const Matrix& X) const override;
+        std::vector<int> predict(const Matrix& X) override; // removed const
+
         // Get for k (Python bindings)
         int get_k() const {return k_;};
-        
     private:
         int predict_single(const Vector& x) const;
         double euclidean_distance(const Vector& a, const Vector& b) const;

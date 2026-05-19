@@ -40,10 +40,14 @@ double Vector::dot(const Vector& other) const {
     if (size() != other.size()){
         throw std::invalid_argument("Vectors need to be of the same size for these operations"); 
     }
-    Vector result(size());
+    
+    double result = 0.0; 
+
     for (size_t i = 0; i < size(); i++) {
-        result[i] = data_[i] * other[i];
+        result += data_[i] * other[i];
     }
+    return result;
+    // dot product needs to result in the multiplication then sum of the products.
 }
 
 double Vector::norm() const {
