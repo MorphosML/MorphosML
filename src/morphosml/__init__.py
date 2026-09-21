@@ -15,9 +15,9 @@ mse = _core.mse
 
 __all__ = [
     "KNN",
-    "Vector", 
     "Matrix",
+    "Vector",
+    "__version__",
     "accuracy",
     "mse",
-    "__version__"
 ]
