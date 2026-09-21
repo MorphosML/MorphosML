@@ -1,12 +1,14 @@
 import pytest
 from morphosml import Matrix
 
+
 def test_matrix_creation():
     m = Matrix([[1, 2], [3, 4]])
     assert m.rows() == 2
     assert m.cols() == 2
     assert m(0, 0) == 1
     assert m(0, 1) == 2
+
 
 def test_matrix_multiplication():
     m1 = Matrix([[1, 2], [3, 4]])
@@ -16,6 +18,7 @@ def test_matrix_multiplication():
     assert m3(0, 1) == 22
     assert m3(1, 0) == 43
     assert m3(1, 1) == 50
+
 
 def test_matrix_transpose():
     m = Matrix([[1, 2], [3, 4]])

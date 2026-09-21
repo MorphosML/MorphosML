@@ -22,3 +22,12 @@ dev = ["pytest>=7.0.0"]
 [tool.setuptools]
 packages = ["morphosml"]
 package-dir = {"" = "src"}
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"

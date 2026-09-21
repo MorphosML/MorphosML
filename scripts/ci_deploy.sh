@@ -70,7 +70,7 @@ fi
 
 if "${PYTHON_BIN}" -m black --version &>/dev/null; then
     log_info "Running black format check..."
-    "${PYTHON_BIN}" -m black --check src/ tests/ --quiet || log_warn "Black detected formatting differences."
+    "${PYTHON_BIN}" -m black --check --target-version py312 src/ tests/ || log_warn "Black detected formatting differences."
 fi
 
 # ------------------------------------------------------------------------------

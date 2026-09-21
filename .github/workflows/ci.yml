@@ -95,7 +95,7 @@ jobs:
           pip install black ruff mypy
 
       - name: Check formatting
-        run: black --check src/ tests/ --quiet
+        run: black --check --target-version py312 src/ tests/
 
       - name: Lint with ruff
         run: ruff check src/ tests/
