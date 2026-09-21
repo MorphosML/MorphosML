@@ -47,6 +47,18 @@ PYBIND11_MODULE(_core, m) {
         .def("dot", &morphosml::Vector::dot)
         .def("norm", &morphosml::Vector::norm)
         .def("normalized", &morphosml::Vector::normalized)
+        .def("__add__", [](const morphosml::Vector& a, const morphosml::Vector& b) {
+            return a + b;
+        })
+        .def("__sub__", [](const morphosml::Vector& a, const morphosml::Vector& b) {
+            return a - b;
+        })
+        .def("__mul__", [](const morphosml::Vector& a, double scalar) {
+            return a * scalar;
+        })
+        .def("__rmul__", [](const morphosml::Vector& a, double scalar) {
+            return a * scalar;
+        })
         .def("to_list", &morphosml::Vector::to_std);
     
     // Matrix bindings

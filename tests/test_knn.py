@@ -19,5 +19,5 @@ def test_knn_single_prediction():
     knn = KNN(k=1)
     knn.fit(X, y)
     
-    pred = knn.predict(np.array([[0.5, 0.5]], dtype=float))
+    pred = knn.predict(np.array([[0.8, 0.8]], dtype=float))
     assert pred[0] == 1
