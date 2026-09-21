@@ -1,4 +1,3 @@
-import pytest
 from morphosml import Matrix
 
 
