@@ -21,6 +21,7 @@ Makefile
 .vscode/
 .idea/
 *.swp
+compile_commands.json
 
 # Testing
 .pytest_cache/
