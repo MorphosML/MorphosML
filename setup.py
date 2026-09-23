@@ -29,6 +29,7 @@ ext_modules = [
             get_pybind_include(),
             pybind11.get_include(),
             'cpp/include',
+            'cpp/include/morphosml',
         ],
         language='c++',
         extra_compile_args=['-std=c++17', '-O3', '-fPIC'],

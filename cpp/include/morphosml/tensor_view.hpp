@@ -3,7 +3,8 @@
 #include <cstddef>
 #include <cstring>
 #include <stdexcept>
-#include "morphosml/matrix.hpp"
+#include "matrix.hpp"
+#include "vector.hpp"
 
 namespace morphosml {
 
@@ -67,8 +68,8 @@ public:
      * @param rows Total number of rows in the view.
      * @param cols Total number of columns in the view.
      */
-    TensorView(const double* data, size_t rows, size_t cols)
-        : data_(data), rows_(rows), cols_(cols), stride_(cols) {}
+    TensorView(const double* data, std::size_t rows, std::size_t cols)
+        : TensorView(data, rows, cols, cols) {}
 
     /**
      * @brief Constructs a `TensorView` directly wrapping an existing `Matrix`.
