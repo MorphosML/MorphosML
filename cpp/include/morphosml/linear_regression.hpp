@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model.hpp"
 #include "matrix.hpp"
 #include "vector.hpp"
 #include "metrics.hpp"
@@ -26,7 +27,7 @@ namespace morphosml {
  * b \leftarrow b - \alpha \frac{1}{N} \sum_{i=1}^{N} (\hat{y}^{(i)} - y^{(i)})
  * \f]
  */
-class LinearRegression {
+class LinearRegression : public Regressor {
 private:
     Vector weights_;        ///< Learned weight coefficients vector.
     double bias_ = 0.0;     ///< Learned intercept (bias) scalar.
@@ -52,7 +53,7 @@ public:
      * @param y Target continuous vector of dimension \(N\).
      * @throws std::invalid_argument If \(X.\text{rows}() \neq y.\text{size}()\) or inputs are empty.
      */
-    void fit(const Matrix& X, const std::vector<double>& y);
+    void fit(const Matrix& X, const std::vector<double>& y) override;
 
     /**
      * @brief Generates continuous target predictions for query matrix \(X\).
@@ -62,7 +63,7 @@ public:
      * @throws std::runtime_error If the model has not been fitted.
      * @throws std::invalid_argument If feature dimension \(D\) does not match `weights.size()`.
      */
-    std::vector<double> predict(const Matrix& X) const;
+    std::vector<double> predict(const Matrix& X) const override;
 
     /**
      * @brief Computes the Coefficient of Determination (\(R^2\) score) on query data.
@@ -110,7 +111,7 @@ public:
      * @brief Returns whether the model has been fitted.
      * @return bool True if fitted, false otherwise.
      */
-    bool is_fitted() const noexcept { return is_fitted_; }
+    bool is_fitted() const noexcept override { return is_fitted_; }
 };
 
 } // namespace morphosml

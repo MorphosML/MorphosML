@@ -95,3 +95,4 @@ All 61+ unit tests must pass cleanly (100% green), and both Ruff and Black must 
    - `perf:` for performance optimizations.
    - `refactor:` for code restructuring.
 3. **Open an Issue / PR**: Reference any relevant GitHub issue numbers in your PR title or description (e.g., `fixes #12`).
+

@@ -110,7 +110,7 @@ namespace morphosml {
     }
 
     // Predict multiple samples
-    std::vector<int> KNN::predict(const Matrix& X) {
+    std::vector<int> KNN::predict(const Matrix& X) const {
 
         // Ensure model has been trained
         if (X_train_.rows() == 0) {

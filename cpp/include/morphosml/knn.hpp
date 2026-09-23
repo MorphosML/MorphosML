@@ -19,7 +19,7 @@ namespace morphosml {
  * \f]
  * Ties in majority voting are resolved deterministically based on neighbor proximity.
  */
-class KNN : public BaseModel {
+class KNN : public Classifier {
 private:
     Matrix X_train_;             ///< Stored training feature matrix.
     std::vector<int> y_train_;   ///< Stored training class labels.
@@ -57,7 +57,13 @@ public:
      * @param X Feature matrix of shape \((M, D)\).
      * @return std::vector<int> Predicted class labels vector.
      */
-    std::vector<int> predict(const Matrix& X) override;
+    std::vector<int> predict(const Matrix& X) const override;
+
+    /**
+     * @brief Checks whether the model has stored training samples.
+     * @return bool True if fitted.
+     */
+    bool is_fitted() const noexcept override { return X_train_.rows() > 0; }
 
     /**
      * @brief Returns hyperparameter \(k\).

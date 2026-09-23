@@ -50,11 +50,20 @@ struct IngestionCursor {
         char delim1, delim2;
         std::istringstream iss(str);
         if (iss >> cursor.epoch >> delim1 >> cursor.sample_offset >> delim2 >> cursor.checksum) {
-            if (delim1 == ':' && delim2 == ':') {
+            std::string extra;
+            if (delim1 == ':' && delim2 == ':' && !(iss >> extra)) {
                 return cursor;
             }
         }
         throw std::invalid_argument("Invalid serialized IngestionCursor format: " + str);
+    }
+
+    bool operator==(const IngestionCursor& other) const noexcept {
+        return epoch == other.epoch && sample_offset == other.sample_offset && checksum == other.checksum;
+    }
+
+    bool operator!=(const IngestionCursor& other) const noexcept {
+        return !(*this == other);
     }
 };
 

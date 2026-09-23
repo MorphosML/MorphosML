@@ -71,6 +71,14 @@ public:
         : data_(data), rows_(rows), cols_(cols), stride_(cols) {}
 
     /**
+     * @brief Constructs a `TensorView` directly wrapping an existing `Matrix`.
+     *
+     * @param mat Matrix to view without copying.
+     */
+    TensorView(const Matrix& mat)
+        : data_(mat.data()), rows_(mat.rows()), cols_(mat.cols()), stride_(mat.cols()) {}
+
+    /**
      * @brief Accesses an element at index (r, c) with bounds checking.
      *
      * @param r 0-based row index.
@@ -154,6 +162,58 @@ public:
             std::memcpy(dst, src, cols_ * sizeof(double));
         }
         return result;
+    }
+
+    /**
+     * @brief Returns a zero-copy row slice spanning `num_rows` starting at `start_row`.
+     */
+    TensorView slice(size_t start_row, size_t num_rows) const {
+        if (start_row + num_rows > rows_) {
+            throw std::out_of_range("TensorView slice exceeds row bounds");
+        }
+        return TensorView(data_ + start_row * stride_, num_rows, cols_, stride_);
+    }
+
+    /**
+     * @brief Returns a zero-copy 2D subview spanning `num_rows` and `num_cols`.
+     */
+    TensorView subview(size_t start_row, size_t num_rows, size_t start_col, size_t num_cols) const {
+        if (start_row + num_rows > rows_ || start_col + num_cols > cols_) {
+            throw std::out_of_range("TensorView subview exceeds bounds");
+        }
+        return TensorView(data_ + start_row * stride_ + start_col, num_rows, num_cols, stride_);
+    }
+
+    /**
+     * @brief Extracts row `r` as an owning MorphosML Vector.
+     */
+    Vector row(size_t r) const {
+        if (r >= rows_) {
+            throw std::out_of_range("TensorView row index out of bounds");
+        }
+        std::vector<double> row_data(cols_);
+        std::memcpy(row_data.data(), row_ptr(r), cols_ * sizeof(double));
+        return Vector(std::move(row_data));
+    }
+
+    /**
+     * @brief Checks element-wise equality between two tensor views.
+     */
+    bool operator==(const TensorView& other) const noexcept {
+        if (rows_ != other.rows_ || cols_ != other.cols_) return false;
+        for (size_t r = 0; r < rows_; ++r) {
+            for (size_t c = 0; c < cols_; ++c) {
+                if ((*this)(r, c) != other(r, c)) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @brief Checks inequality between two tensor views.
+     */
+    bool operator!=(const TensorView& other) const noexcept {
+        return !(*this == other);
     }
 };
 

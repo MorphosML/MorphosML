@@ -1,4 +1,5 @@
 #include "morphosml/matrix.hpp"
+#include "morphosml/tensor_view.hpp"
 #include <cstring>
 #include <iomanip>
 
@@ -220,6 +221,10 @@ std::vector<std::vector<double>> Matrix::to_std() const {
         std::memcpy(res[i].data(), data_.data() + (i * n_cols), n_cols * sizeof(double));
     }
     return res;
+}
+
+TensorView Matrix::view() const {
+    return TensorView(data_.data(), n_rows, n_cols, n_cols);
 }
 
 } // namespace morphosml

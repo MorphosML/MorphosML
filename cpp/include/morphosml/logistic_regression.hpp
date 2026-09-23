@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model.hpp"
 #include "matrix.hpp"
 #include "vector.hpp"
 #include "metrics.hpp"
@@ -21,7 +22,7 @@ namespace morphosml {
  * \mathcal{L}(\mathbf{w}, b) = -\frac{1}{N} \sum_{i=1}^N \left[ y^{(i)} \ln(\hat{y}^{(i)}) + (1 - y^{(i)}) \ln(1 - \hat{y}^{(i)}) \right]
  * \f]
  */
-class LogisticRegression {
+class LogisticRegression : public Classifier {
 private:
     Vector weights_;        ///< Learned weight coefficients vector.
     double bias_ = 0.0;     ///< Learned bias intercept scalar.
@@ -55,7 +56,18 @@ public:
      * @param y Binary label vector containing values in \(\{0, 1\}\).
      * @throws std::invalid_argument If dimensions do not match, inputs are empty, or labels \(\notin \{0, 1\}\).
      */
-    void fit(const Matrix& X, const std::vector<int>& y);
+    void fit(const Matrix& X, const std::vector<int>& y) override;
+
+    /**
+     * @brief Predicts discrete binary class labels \(\{0, 1\}\) using default threshold 0.5.
+     *
+     * @param X Feature matrix of shape \((M, D)\).
+     * @return std::vector<int> Predicted class labels in \(\{0, 1\}\).
+     * @throws std::runtime_error If the model has not been fitted.
+     */
+    std::vector<int> predict(const Matrix& X) const override {
+        return predict(X, 0.5);
+    }
 
     /**
      * @brief Predicts discrete binary class labels \(\{0, 1\}\) given a decision threshold.
@@ -65,7 +77,7 @@ public:
      * @return std::vector<int> Predicted class labels in \(\{0, 1\}\).
      * @throws std::runtime_error If the model has not been fitted.
      */
-    std::vector<int> predict(const Matrix& X, double threshold = 0.5) const;
+    std::vector<int> predict(const Matrix& X, double threshold) const;
 
     /**
      * @brief Predicts class-1 probability estimates \(\hat{y} \in [0, 1]\).
@@ -122,7 +134,7 @@ public:
      * @brief Returns whether the model has been fitted.
      * @return bool True if fitted, false otherwise.
      */
-    bool is_fitted() const noexcept { return is_fitted_; }
+    bool is_fitted() const noexcept override { return is_fitted_; }
 };
 
 } // namespace morphosml

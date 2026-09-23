@@ -6,15 +6,15 @@ gradients, Jacobians, Hessians), numerical quadrature, limit solvers, and native
 """
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, overload
 
 import numpy as np
 
 class Vector:
     """Dense 1D vector backed by contiguous double-precision floating-point memory."""
 
-    def __init__(self, data: int | list[float] = ...) -> None:
-        """Initialize a Vector with a dimension size (zero-initialized) or from a list of floats."""
+    def __init__(self, data: int | list[float] | np.ndarray = ...) -> None:
+        """Initialize a Vector with a dimension size (zero-initialized) or from a list or NumPy array of floats."""
         ...
 
     def size(self) -> int:
@@ -61,6 +61,10 @@ class Vector:
         """Right-hand scalar multiplication."""
         ...
 
+    def __eq__(self, other: object) -> bool:
+        """Element-wise vector equality comparison."""
+        ...
+
     def to_list(self) -> list[float]:
         """Convert vector into a standard Python list of floats."""
         ...
@@ -68,8 +72,19 @@ class Vector:
 class Matrix:
     """High-Performance Computing (HPC) 2D dense matrix backed by a contiguous 1D flat buffer."""
 
+    @overload
     def __init__(self, rows: int = ..., cols: int = ...) -> None:
         """Initialize an empty matrix or a (rows x cols) matrix zero-initialized."""
+        ...
+
+    @overload
+    def __init__(self, data: list[list[float]] | np.ndarray) -> None:
+        """Initialize a matrix from nested lists or a 2D NumPy array."""
+        ...
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return dimensions (rows, cols) of the matrix."""
         ...
 
     def rows(self) -> int:
@@ -84,12 +99,20 @@ class Matrix:
         """Return the total number of elements (rows * cols)."""
         ...
 
+    def view(self) -> TensorView:
+        """Return a non-owning zero-copy TensorView over the matrix."""
+        ...
+
+    def row(self, i: int) -> Vector:
+        """Extract row i as an owning Vector."""
+        ...
+
     def __call__(self, i: int, j: int) -> float:
         """Access element at coordinate (i, j)."""
         ...
 
-    def __getitem__(self, idx: tuple[int, int]) -> float:
-        """Access element via 2D tuple index `mat[i, j]`."""
+    def __getitem__(self, idx: tuple[int, int] | int) -> float | Vector:
+        """Access element via 2D tuple index `mat[i, j]` or row via `mat[i]`."""
         ...
 
     def __setitem__(self, idx: tuple[int, int], val: float) -> None:
@@ -106,6 +129,10 @@ class Matrix:
 
     def __sub__(self, other: Matrix) -> Matrix:
         """Element-wise matrix subtraction."""
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Element-wise matrix equality comparison."""
         ...
 
     def transpose(self) -> Matrix:
@@ -149,6 +176,11 @@ class KNN:
     @property
     def k(self) -> int:
         """Return neighborhood size k."""
+        ...
+
+    @property
+    def is_fitted(self) -> bool:
+        """Return whether the model has been fitted."""
         ...
 
 class LinearRegression:
@@ -284,8 +316,19 @@ def get_seed() -> int:
 class TensorView:
     """Non-owning, zero-copy 2D view over an externally allocated float64 memory buffer."""
 
+    @overload
     def __init__(self) -> None:
         """Construct an empty TensorView."""
+        ...
+
+    @overload
+    def __init__(self, target: Matrix | np.ndarray) -> None:
+        """Construct a zero-copy TensorView directly wrapping a Matrix or 2D NumPy array."""
+        ...
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return dimensions (rows, cols) of the view."""
         ...
 
     def rows(self) -> int:
@@ -308,16 +351,40 @@ class TensorView:
         """Return True if the view contains zero elements."""
         ...
 
+    def slice(self, start_row: int, num_rows: int) -> TensorView:
+        """Return a zero-copy row slice spanning num_rows starting at start_row."""
+        ...
+
+    def subview(
+        self, start_row: int, num_rows: int, start_col: int, num_cols: int
+    ) -> TensorView:
+        """Return a zero-copy 2D subview spanning num_rows and num_cols."""
+        ...
+
+    def row(self, r: int) -> Vector:
+        """Extract row r as an owning Vector."""
+        ...
+
     def to_matrix(self) -> Matrix:
         """Copy and materialize the view into an owning MorphosML Matrix."""
+        ...
+
+    def to_numpy(self) -> np.ndarray:
+        """Materialize the view into a contiguous NumPy array."""
         ...
 
     def __call__(self, r: int, c: int) -> float:
         """Access element at row r and column c."""
         ...
 
-    def __getitem__(self, idx: tuple[int, int]) -> float:
-        """Access element via 2D tuple index `view[r, c]`."""
+    def __getitem__(
+        self, idx: tuple[int, int] | int | slice
+    ) -> float | Vector | TensorView:
+        """Access element via 2D tuple index `view[r, c]`, row via `view[r]`, or slice via `view[start:stop]`."""
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Check element-wise equality between two tensor views."""
         ...
 
 def tensor_view_from_numpy(arr: np.ndarray) -> TensorView:
@@ -342,6 +409,10 @@ class IngestionCursor:
     @staticmethod
     def from_string(s: str) -> IngestionCursor:
         """Deserialize a cursor token string back into an IngestionCursor instance."""
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality between two ingestion cursors."""
         ...
 
 class IdempotentSampler:

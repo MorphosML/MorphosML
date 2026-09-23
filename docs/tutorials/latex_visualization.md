@@ -96,3 +96,4 @@ from morphosml.latex import latexify
 # Directly wrap and display in notebooks
 display_obj = latexify(model)
 ```
+

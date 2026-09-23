@@ -163,6 +163,20 @@ public:
     const std::vector<double>& data() const noexcept { return data_; }
 
     /**
+     * @brief Checks element-wise equality between two vectors.
+     */
+    bool operator==(const Vector& other) const noexcept {
+        return data_ == other.data_;
+    }
+
+    /**
+     * @brief Checks inequality between two vectors.
+     */
+    bool operator!=(const Vector& other) const noexcept {
+        return !(*this == other);
+    }
+
+    /**
      * @brief Exports the internal data as a `std::vector<double>`.
      * @return std::vector<double> Vector data copy.
      */

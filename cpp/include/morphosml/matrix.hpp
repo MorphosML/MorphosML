@@ -24,6 +24,8 @@ void set_seed(uint64_t seed);
  */
 uint64_t get_seed();
 
+class TensorView;
+
 /**
  * @brief High-Performance Computing (HPC) 2D dense matrix with contiguous 1D memory layout.
  *
@@ -274,6 +276,26 @@ public:
      * @return const std::vector<double>& Contiguous flat buffer.
      */
     const std::vector<double>& raw_data() const noexcept { return data_; }
+
+    /**
+     * @brief Checks element-wise equality between two matrices.
+     */
+    bool operator==(const Matrix& other) const noexcept {
+        if (n_rows != other.n_rows || n_cols != other.n_cols) return false;
+        return data_ == other.data_;
+    }
+
+    /**
+     * @brief Checks inequality between two matrices.
+     */
+    bool operator!=(const Matrix& other) const noexcept {
+        return !(*this == other);
+    }
+
+    /**
+     * @brief Returns a non-owning zero-copy TensorView spanning this matrix.
+     */
+    TensorView view() const;
 
     /**
      * @brief Converts the contiguous matrix into a nested `std::vector<std::vector<double>>`.
