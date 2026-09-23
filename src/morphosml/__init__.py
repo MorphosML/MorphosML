@@ -1,4 +1,19 @@
-"""MorphosML - High-performance machine learning with C++ core."""
+"""MorphosML - High-Performance Machine Learning & Differentiable Programming with a C++ Core.
+
+Modules:
+- `data`: Out-of-core memory mapping (mmap), zero-copy buffer protocol, idempotent sampling, and async prefetching.
+- `calculus`: Numerical differentiation (O(h^4) stencils), multivariate gradients, Jacobians, Hessians, quadrature, and limits.
+- `latex`: Mathematical LaTeX string formatting and interactive Jupyter notebook rendering.
+- `utils`: Train/test splits and dataset splitting utilities.
+
+Core Types & Models:
+- `Matrix`: Contiguous 1D-backed 2D dense matrix with cache-optimized multiplication.
+- `Vector`: 1D dense mathematical vector with Euclidean operations.
+- `TensorView`: Non-owning zero-copy 2D view over contiguous or strided float64 memory.
+- `LinearRegression`: Multivariate linear regression via gradient descent.
+- `LogisticRegression`: Binary logistic regression with sigmoid activation and log-loss.
+- `KNN`: k-Nearest Neighbors classifier with Euclidean distance metric.
+"""
 
 __version__ = "0.3.0"
 __author__ = "Gabriel Carmona"

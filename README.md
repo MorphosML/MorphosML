@@ -11,6 +11,19 @@ Designed from first principles for **High-Performance Computing (HPC)**, Morphos
 
 ---
 
+## 📚 Documentation & Guides
+
+Explore the comprehensive MorphosML documentation library:
+- 🏗️ **[Architectural Blueprint](docs/architecture.md)**: Deep dive into contiguous memory layouts, zero-copy buffer protocol, POSIX `mmap` kernel caching, and asynchronous double buffering.
+- 📖 **[API Reference](docs/api_reference.md)**: Exhaustive class and method specifications for `Matrix`, `Vector`, `TensorView`, `MMapDataset`, `DataLoader`, `calculus`, and models.
+- 🚀 **[Quickstart Tutorial](docs/tutorials/quickstart.md)**: Step-by-step introduction from installation to model evaluation.
+- ⚡ **[High-Performance Ingestion Tutorial](docs/tutorials/hpc_ingestion.md)**: Out-of-core `.mldat` streaming, idempotent sampling, and cursor checkpoint recovery.
+- 🧮 **[Calculus & Differentiable Programming](docs/tutorials/calculus_autodiff.md)**: $\mathcal{O}(h^4)$ Taylor stencils, gradients, Jacobians, Hessians, quadrature, and limits.
+- 📐 **[LaTeX Visualization & Jupyter Integration](docs/tutorials/latex_visualization.md)**: LaTeX mathematical typesetting and native interactive notebook rendering.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)**: Development setup, building C++ extensions, formatting standards, and pull request workflows.
+
+---
+
 ## Table of Contents
 
 - [Core Principles](#core-principles)

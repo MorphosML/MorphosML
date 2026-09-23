@@ -1,3 +1,9 @@
+"""LaTeX formatting and notebook rendering module for MorphosML mathematical objects.
+
+Enables formatted LaTeX string conversion and native interactive Jupyter Notebook
+rendering (via `_repr_latex_`) for `Matrix`, `Vector`, `LinearRegression`, and `LogisticRegression`.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -8,7 +14,24 @@ import numpy as np
 def matrix_to_latex(
     mat: Any, max_rows: int = 6, max_cols: int = 6, precision: int = 4
 ) -> str:
-    """Format a MorphosML Matrix or 2D array into a LaTeX pmatrix string."""
+    """Format a MorphosML Matrix or 2D array into a LaTeX `pmatrix` string.
+
+    Parameters
+    ----------
+    mat : Matrix or numpy.ndarray
+        2D matrix object.
+    max_rows : int, default=6
+        Maximum rows to display before inserting ellipsis (`\\vdots`, `\\ddots`).
+    max_cols : int, default=6
+        Maximum columns to display before inserting horizontal ellipsis (`\\dots`).
+    precision : int, default=4
+        Floating-point decimal display precision.
+
+    Returns
+    -------
+    str
+        LaTeX string formatted with `\\begin{pmatrix} ... \\end{pmatrix}`.
+    """
     rows = mat.rows() if hasattr(mat, "rows") else mat.shape[0]
     cols = mat.cols() if hasattr(mat, "cols") else mat.shape[1]
 
@@ -59,7 +82,22 @@ def matrix_to_latex(
 
 
 def vector_to_latex(vec: Any, max_len: int = 8, precision: int = 4) -> str:
-    """Format a MorphosML Vector or 1D array into a LaTeX column vector."""
+    """Format a MorphosML Vector or 1D array into a LaTeX column vector string.
+
+    Parameters
+    ----------
+    vec : Vector, numpy.ndarray, or list of float
+        1D vector object.
+    max_len : int, default=8
+        Maximum elements to display before inserting vertical ellipsis (`\\vdots`).
+    precision : int, default=4
+        Floating-point decimal display precision.
+
+    Returns
+    -------
+    str
+        LaTeX column vector formatted in `\\begin{pmatrix} ... \\end{pmatrix}`.
+    """
     n = vec.size() if hasattr(vec, "size") else len(vec)
     if n == 0:
         return r"\begin{pmatrix}\end{pmatrix}"
@@ -83,7 +121,22 @@ def vector_to_latex(vec: Any, max_len: int = 8, precision: int = 4) -> str:
 def linear_regression_to_latex(
     model: Any, feature_names: list[str] | None = None, precision: int = 4
 ) -> str:
-    """Generate LaTeX equation for a fitted LinearRegression model."""
+    """Generate the analytical LaTeX prediction equation for a fitted LinearRegression model.
+
+    Parameters
+    ----------
+    model : LinearRegression
+        Fitted linear regression model.
+    feature_names : list of str, optional
+        Custom symbolic variable names (default: `['x_1', 'x_2', ...]`).
+    precision : int, default=4
+        Decimal precision for coefficients.
+
+    Returns
+    -------
+    str
+        LaTeX equation string, e.g. `\\hat{y} = 2.5\\,x_1 - 1.2\\,x_2 + 0.4`.
+    """
     if not getattr(model, "is_fitted", False):
         return r"\hat{y} = \mathbf{w}^T \mathbf{x} + b"
 
@@ -126,7 +179,22 @@ def linear_regression_to_latex(
 def logistic_regression_to_latex(
     model: Any, feature_names: list[str] | None = None, precision: int = 4
 ) -> str:
-    """Generate LaTeX equation for a fitted LogisticRegression model."""
+    """Generate the analytical LaTeX posterior probability equation for a fitted LogisticRegression model.
+
+    Parameters
+    ----------
+    model : LogisticRegression
+        Fitted logistic regression model.
+    feature_names : list of str, optional
+        Custom symbolic feature names.
+    precision : int, default=4
+        Decimal precision for coefficients.
+
+    Returns
+    -------
+    str
+        LaTeX equation, e.g. `P(y=1|\\mathbf{x}) = \\sigma(z) = \\frac{1}{1 + e^{-(2.1 x_1 - 0.5)}}`.
+    """
     if not getattr(model, "is_fitted", False):
         return r"P(y=1|\mathbf{x}) = \sigma(\mathbf{w}^T \mathbf{x} + b) = \frac{1}{1 + e^{-(\mathbf{w}^T \mathbf{x} + b)}}"
 
@@ -168,7 +236,20 @@ def logistic_regression_to_latex(
 
 
 def to_latex(obj: Any, **kwargs) -> str:
-    """Convert a MorphosML object (Matrix, Vector, Model, or expression) to clean LaTeX string."""
+    """Convert any supported MorphosML object to a clean LaTeX string.
+
+    Parameters
+    ----------
+    obj : Any
+        MorphosML Matrix, Vector, LinearRegression, LogisticRegression, or NumPy array.
+    **kwargs
+        Formatting options forwarded to the respective conversion function.
+
+    Returns
+    -------
+    str
+        LaTeX markup string.
+    """
     type_name = type(obj).__name__
 
     if type_name == "Matrix":
@@ -192,12 +273,13 @@ def to_latex(obj: Any, **kwargs) -> str:
 
 
 class LatexWrapper:
-    """Wrapper that enables rich display of LaTeX math in Jupyter Notebooks."""
+    """Interactive LaTeX wrapper providing `_repr_latex_` for Jupyter Notebook rendering."""
 
     def __init__(self, latex_str: str):
         self.latex_str = latex_str
 
     def _repr_latex_(self) -> str:
+        """Jupyter Notebook rendering hook."""
         return f"$${self.latex_str}$$"
 
     def __str__(self) -> str:
@@ -208,15 +290,13 @@ class LatexWrapper:
 
 
 def latexify(obj_or_fn: Any = None, **kwargs):
-    """Decorator or converter returning a LatexWrapper for rich Jupyter notebook rendering.
+    """Convert an object or decorate a function to display formatted LaTeX in Jupyter Notebooks.
 
-    Usage:
-        model = LinearRegression().fit(X, y)
-        latexify(model)  # Renders LaTeX equation in Jupyter
-
-        @latexify
-        def f(x):
-            return x**2
+    Examples
+    --------
+    >>> model = LinearRegression().fit(X, y)
+    >>> latexify(model)
+    Latex('\\hat{y} = 2.1 x_1 + 0.5')
     """
     if obj_or_fn is None:
         return lambda target: latexify(target, **kwargs)
@@ -226,7 +306,7 @@ def latexify(obj_or_fn: Any = None, **kwargs):
 
 
 def enable_notebook_latex() -> None:
-    """Patch MorphosML core classes with _repr_latex_ for native Jupyter rendering."""
+    """Patch MorphosML core classes with `_repr_latex_` for native, automatic Jupyter Notebook rendering."""
     from morphosml import LinearRegression, LogisticRegression, Matrix, Vector
 
     Matrix._repr_latex_ = lambda self: f"$${matrix_to_latex(self)}$$"

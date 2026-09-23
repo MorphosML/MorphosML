@@ -173,3 +173,4 @@ Matrix hessian(const std::function<double(const std::vector<double>&)>& f,
 
 } // namespace calculus
 } // namespace morphosml
+

@@ -10,12 +10,12 @@ from morphosml.latex.formatter import (
 )
 
 __all__ = [
-    "LatexWrapper",
-    "enable_notebook_latex",
+    "to_latex",
     "latexify",
+    "matrix_to_latex",
+    "vector_to_latex",
     "linear_regression_to_latex",
     "logistic_regression_to_latex",
-    "matrix_to_latex",
-    "to_latex",
-    "vector_to_latex",
+    "enable_notebook_latex",
+    "LatexWrapper",
 ]

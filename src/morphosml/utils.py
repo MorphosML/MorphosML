@@ -1,5 +1,7 @@
 """Dataset and numerical utilities for MorphosML."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -17,19 +19,32 @@ def train_test_split(
     Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
-        Input features.
+        Input feature matrix or array.
     y : array-like of shape (n_samples,)
-        Target values.
+        Target label or continuous value array.
     test_size : float, default=0.2
-        Proportion of the dataset to include in the test split (0.0 to 1.0).
+        Proportion of the dataset to include in the test split (strictly between 0.0 and 1.0).
     shuffle : bool, default=True
         Whether or not to shuffle the data before splitting.
     random_state : int or None, default=None
-        Controls the shuffling for reproducible output across multiple function calls.
+        Deterministic seed for reproducible pseudorandom permutation.
 
     Returns
     -------
-    X_train, X_test, y_train, y_test : Tuple of ndarrays
+    X_train : numpy.ndarray
+        Training feature split.
+    X_test : numpy.ndarray
+        Testing feature split.
+    y_train : numpy.ndarray
+        Training target split.
+    y_test : numpy.ndarray
+        Testing target split.
+
+    Raises
+    ------
+    ValueError
+        If `test_size` is not in (0.0, 1.0), or if `X` and `y` have mismatched lengths,
+        or if the split results in an empty partition.
     """
     if not (0.0 < test_size < 1.0):
         raise ValueError("test_size must be strictly between 0.0 and 1.0")

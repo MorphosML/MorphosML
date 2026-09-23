@@ -152,3 +152,4 @@ double integrate_2d(const std::function<double(double, double)>& f,
 
 } // namespace calculus
 } // namespace morphosml
+

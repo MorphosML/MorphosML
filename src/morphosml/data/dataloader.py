@@ -1,3 +1,12 @@
+"""High-performance, fault-tolerant, idempotent DataLoader with asynchronous prefetching.
+
+Features:
+- Deterministic seeded shuffling across epochs via `IdempotentSampler` (SplitMix64).
+- Sub-millisecond cursor checkpointing (`get_cursor`, `resume_from`).
+- Double-buffered background worker queue for zero-bubble pipeline execution.
+- Zero-copy mmap batch slicing when batches are contiguous.
+"""
+
 from __future__ import annotations
 
 import queue
@@ -12,13 +21,30 @@ from morphosml.data.dataset import Dataset, MMapDataset, NumpyDataset
 
 
 class DataLoader:
-    """High-performance, fault-tolerant, idempotent DataLoader.
+    """High-performance, fault-tolerant, idempotent DataLoader for batch training.
 
-    Features:
-    - Deterministic seeded shuffling across epochs via IdempotentSampler (SplitMix64).
-    - Sub-millisecond cursor-based checkpointing (get_cursor, resume_from).
-    - Double-buffered background prefetching for zero-bubble pipeline execution.
-    - Zero-copy mmap batch slicing when sequential.
+    Parameters
+    ----------
+    dataset : Dataset
+        Source dataset (`MMapDataset`, `NumpyDataset`, or custom `Dataset`).
+    batch_size : int, default=32
+        Number of samples per training batch. Must be > 0.
+    shuffle : bool, default=True
+        Whether to deterministically permute sample indices before each epoch.
+    seed : int, default=42
+        Random seed for the deterministic SplitMix64 pseudo-random generator.
+    drop_last : bool, default=False
+        Whether to drop the trailing incomplete batch if dataset size is not divisible by batch_size.
+    epoch : int, default=0
+        Initial epoch index (used to compute the unique seeded permutation schedule).
+    prefetch_batches : int, default=2
+        Number of batches to prefetch asynchronously in a background thread (double-buffering).
+        Set to 0 to disable background prefetching and run strictly synchronously.
+
+    Raises
+    ------
+    ValueError
+        If `batch_size <= 0` or `prefetch_batches < 0`.
     """
 
     def __init__(
@@ -50,12 +76,24 @@ class DataLoader:
         self._sample_offset = 0
 
     def set_epoch(self, epoch: int) -> None:
-        """Update current training epoch for deterministic shuffling."""
+        """Update current training epoch for deterministic shuffling.
+
+        Parameters
+        ----------
+        epoch : int
+            New epoch index.
+        """
         self.epoch = epoch
         self._sample_offset = 0
 
     def get_cursor(self) -> IngestionCursor:
-        """Capture current ingestion state as a lightweight serializable checkpoint token."""
+        """Capture the exact current ingestion progress as a serializable checkpoint token.
+
+        Returns
+        -------
+        IngestionCursor
+            Cursor token containing current epoch, sample offset, and dataset checksum.
+        """
         cursor = IngestionCursor()
         cursor.epoch = self.epoch
         cursor.sample_offset = self._sample_offset
@@ -63,7 +101,18 @@ class DataLoader:
         return cursor
 
     def resume_from(self, cursor: IngestionCursor | str) -> None:
-        """Resume DataLoader state from a previously saved IngestionCursor checkpoint token."""
+        """Resume DataLoader state from a previously saved `IngestionCursor` checkpoint.
+
+        Parameters
+        ----------
+        cursor : IngestionCursor or str
+            Checkpoint token or serialized string (e.g. `"1:512:1438928374289"`).
+
+        Raises
+        ------
+        ValueError
+            If the cursor's checksum does not match the active dataset's checksum.
+        """
         if isinstance(cursor, str):
             cursor = IngestionCursor.from_string(cursor)
 
@@ -78,6 +127,7 @@ class DataLoader:
         self._sample_offset = cursor.sample_offset
 
     def __len__(self) -> int:
+        """Return total number of batches per epoch."""
         n = len(self.dataset)
         if self.drop_last:
             return n // self.batch_size
@@ -121,6 +171,7 @@ class DataLoader:
         return np.array(items)
 
     def __iter__(self) -> Iterator[Any]:
+        """Yield batches of training data, with optional background prefetching."""
         all_indices = self._get_indices()
         total_samples = len(all_indices)
 

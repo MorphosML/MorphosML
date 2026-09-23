@@ -12,14 +12,14 @@ from morphosml.calculus.differentiable import (
 )
 
 __all__ = [
-    "DifferentiableFunction",
     "derivative",
-    "differentiable",
-    "evaluate_limit",
     "gradient",
+    "jacobian",
     "hessian",
     "integrate",
     "integrate_2d",
-    "jacobian",
     "limit",
+    "evaluate_limit",
+    "differentiable",
+    "DifferentiableFunction",
 ]
