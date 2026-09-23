@@ -20,6 +20,9 @@ ext_modules = [
             'cpp/src/logistic_regression.cpp',
             'cpp/src/data/sampler.cpp',
             'cpp/src/data/mmap_buffer.cpp',
+            'cpp/src/calculus/differentiation.cpp',
+            'cpp/src/calculus/integration.cpp',
+            'cpp/src/calculus/limits.cpp',
             'cpp/src/bindings.cpp',
         ],
         include_dirs=[
@@ -71,7 +74,7 @@ except FileNotFoundError:
 
 setup(
     name='morphosml',
-    version='0.2.0',
+    version='0.3.0',
     author='Gabriel Carmona',
     author_email='gabrielcarmonabittencourtpy@gmail.com',
     description='High-performance machine learning library with C++ core',

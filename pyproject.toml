@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "morphosml"
-version = "0.2.0"
+version = "0.3.0"
 description = "High-performance machine learning library with C++ core"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -19,9 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0"]
 
-[tool.setuptools]
-packages = ["morphosml"]
-package-dir = {"" = "src"}
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 88

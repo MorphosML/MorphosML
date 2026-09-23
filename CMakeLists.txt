@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(morphosml VERSION 0.2.0 LANGUAGES CXX)
+project(morphosml VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,6 +24,9 @@ add_library(_core MODULE
         cpp/src/logistic_regression.cpp
         cpp/src/data/sampler.cpp
         cpp/src/data/mmap_buffer.cpp
+        cpp/src/calculus/differentiation.cpp
+        cpp/src/calculus/integration.cpp
+        cpp/src/calculus/limits.cpp
         cpp/src/bindings.cpp
 )
 

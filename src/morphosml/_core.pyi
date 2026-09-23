@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import Any
+
 import numpy as np
 
 class Vector:
@@ -130,3 +133,53 @@ class MMapBuffer:
     def write_mldat(filepath: str, mat: Matrix) -> None: ...
     @staticmethod
     def write_mldat_numpy(filepath: str, arr: np.ndarray) -> None: ...
+
+class LimitResult:
+    value: float
+    exists: bool
+    is_infinite: bool
+    direction: str
+
+class _CalculusModule:
+    LimitResult: type[LimitResult]
+
+    @staticmethod
+    def derivative(f: Any, x: float, order: int = 1, h: float = 0.0) -> float: ...
+    @staticmethod
+    def gradient(f: Any, x: Sequence[float], h: float = 1e-5) -> list[float]: ...
+    @staticmethod
+    def jacobian(f: Any, x: Sequence[float], h: float = 1e-5) -> Matrix: ...
+    @staticmethod
+    def hessian(f: Any, x: Sequence[float], h: float = 1e-4) -> Matrix: ...
+    @staticmethod
+    def trapezoidal(f: Any, a: float, b: float, n: int = 1000) -> float: ...
+    @staticmethod
+    def simpson(f: Any, a: float, b: float, n: int = 1000) -> float: ...
+    @staticmethod
+    def simpson_38(f: Any, a: float, b: float, n: int = 999) -> float: ...
+    @staticmethod
+    def gauss_legendre(f: Any, a: float, b: float, n_points: int = 5) -> float: ...
+    @staticmethod
+    def integrate(
+        f: Any, a: float, b: float, method: str = "simpson", n: int = 1000
+    ) -> float: ...
+    @staticmethod
+    def integrate_2d(
+        f: Any,
+        x_a: float,
+        x_b: float,
+        y_a: float,
+        y_b: float,
+        nx: int = 100,
+        ny: int = 100,
+    ) -> float: ...
+    @staticmethod
+    def evaluate_limit(
+        f: Any, x_target: float, direction: str = "both", tol: float = 1e-6
+    ) -> LimitResult: ...
+    @staticmethod
+    def limit(
+        f: Any, x_target: float, direction: str = "both", tol: float = 1e-6
+    ) -> float: ...
+
+calculus: _CalculusModule

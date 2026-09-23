@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 #include <cstring>
 
 #include "morphosml/vector.hpp"
@@ -13,6 +14,9 @@
 #include "morphosml/data/cursor.hpp"
 #include "morphosml/data/sampler.hpp"
 #include "morphosml/data/mmap_buffer.hpp"
+#include "morphosml/calculus/differentiation.hpp"
+#include "morphosml/calculus/integration.hpp"
+#include "morphosml/calculus/limits.hpp"
 
 namespace py = pybind11;
 
@@ -261,4 +265,69 @@ PYBIND11_MODULE(_core, m) {
             morphosml::Matrix mat = numpy_to_matrix(arr);
             morphosml::data::MMapBuffer::write_mldat(filepath, mat);
         }, py::arg("filepath"), py::arg("arr"));
+
+    // Calculus submodule bindings (Issues #12, #8)
+    py::module_ m_calc = m.def_submodule("calculus", "MorphosML Calculus & Differentiable Programming Core");
+
+    m_calc.def("derivative", &morphosml::calculus::derivative,
+               py::arg("f"), py::arg("x"), py::arg("order") = 1, py::arg("h") = 0.0,
+               "Numerical derivative of single-variable function f(x) up to 3rd order");
+
+    m_calc.def("gradient", &morphosml::calculus::gradient,
+               py::arg("f"), py::arg("x"), py::arg("h") = 1e-5,
+               "Numerical gradient grad f(x) for multivariate scalar function");
+
+    m_calc.def("jacobian", &morphosml::calculus::jacobian,
+               py::arg("f"), py::arg("x"), py::arg("h") = 1e-5,
+               "Numerical Jacobian matrix J for vector-valued function f: R^n -> R^m");
+
+    m_calc.def("hessian", &morphosml::calculus::hessian,
+               py::arg("f"), py::arg("x"), py::arg("h") = 1e-4,
+               "Numerical Hessian matrix H for multivariate scalar function f: R^n -> R");
+
+    m_calc.def("trapezoidal", &morphosml::calculus::trapezoidal,
+               py::arg("f"), py::arg("a"), py::arg("b"), py::arg("n") = 1000,
+               "Trapezoidal rule numerical integration");
+
+    m_calc.def("simpson", &morphosml::calculus::simpson,
+               py::arg("f"), py::arg("a"), py::arg("b"), py::arg("n") = 1000,
+               "Simpson's 1/3 rule numerical integration");
+
+    m_calc.def("simpson_38", &morphosml::calculus::simpson_38,
+               py::arg("f"), py::arg("a"), py::arg("b"), py::arg("n") = 999,
+               "Simpson's 3/8 rule numerical integration");
+
+    m_calc.def("gauss_legendre", &morphosml::calculus::gauss_legendre,
+               py::arg("f"), py::arg("a"), py::arg("b"), py::arg("n_points") = 5,
+               "Gauss-Legendre quadrature numerical integration");
+
+    m_calc.def("integrate", &morphosml::calculus::integrate,
+               py::arg("f"), py::arg("a"), py::arg("b"),
+               py::arg("method") = "simpson", py::arg("n") = 1000,
+               "Numerical 1D integration dispatcher");
+
+    m_calc.def("integrate_2d", &morphosml::calculus::integrate_2d,
+               py::arg("f"), py::arg("x_a"), py::arg("x_b"), py::arg("y_a"), py::arg("y_b"),
+               py::arg("nx") = 100, py::arg("ny") = 100,
+               "Numerical 2D double integration");
+
+    py::class_<morphosml::calculus::LimitResult>(m_calc, "LimitResult")
+        .def_readonly("value", &morphosml::calculus::LimitResult::value)
+        .def_readonly("exists", &morphosml::calculus::LimitResult::exists)
+        .def_readonly("is_infinite", &morphosml::calculus::LimitResult::is_infinite)
+        .def_readonly("direction", &morphosml::calculus::LimitResult::direction)
+        .def("__repr__", [](const morphosml::calculus::LimitResult& r) {
+            return "<LimitResult value=" + std::to_string(r.value) +
+                   " exists=" + (r.exists ? "True" : "False") +
+                   " is_infinite=" + (r.is_infinite ? "True" : "False") +
+                   " direction='" + r.direction + "'>";
+        });
+
+    m_calc.def("evaluate_limit", &morphosml::calculus::evaluate_limit,
+               py::arg("f"), py::arg("x_target"), py::arg("direction") = "both", py::arg("tol") = 1e-6,
+               "Evaluate numerical limit with full diagnostics");
+
+    m_calc.def("limit", &morphosml::calculus::limit,
+               py::arg("f"), py::arg("x_target"), py::arg("direction") = "both", py::arg("tol") = 1e-6,
+               "Evaluate numerical limit returning double or raising error if non-existent");
 }
