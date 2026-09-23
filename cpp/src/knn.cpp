@@ -54,8 +54,8 @@ namespace morphosml {
         // Compare input sample against ALL training samples
         for (size_t i = 0; i < X_train_.rows(); i++) {
 
-            // Get one training sample row
-            Vector x_train(X_train_.to_std()[i]);
+            // Get one training sample row (HPC contiguous zero-extra-allocation)
+            Vector x_train = X_train_.row(i);
 
             // Compute distance from x to training sample
             double dist = euclidean_distance(x, x_train);
@@ -126,8 +126,8 @@ namespace morphosml {
         // Predict each row independently
         for (size_t i = 0; i < X.rows(); i++) {
 
-            // Extract sample row
-            Vector x(X.to_std()[i]);
+            // Extract sample row (HPC contiguous zero-extra-allocation)
+            Vector x = X.row(i);
 
             // Predict and store result
             predictions.push_back(predict_single(x));

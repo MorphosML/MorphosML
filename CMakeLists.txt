@@ -20,6 +20,10 @@ add_library(_core MODULE
         cpp/src/vector.cpp
         cpp/src/matrix.cpp
         cpp/src/knn.cpp
+        cpp/src/linear_regression.cpp
+        cpp/src/logistic_regression.cpp
+        cpp/src/data/sampler.cpp
+        cpp/src/data/mmap_buffer.cpp
         cpp/src/bindings.cpp
 )
 

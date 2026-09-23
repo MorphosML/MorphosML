@@ -7,7 +7,7 @@
 
 namespace morphosml {
 
-class LinearRegression {
+class LogisticRegression {
 private:
     Vector weights_;
     double bias_ = 0.0;
@@ -17,12 +17,15 @@ private:
     bool is_fitted_ = false;
 
 public:
-    explicit LinearRegression(double learning_rate = 0.01, size_t epochs = 1000, bool fit_intercept = true);
+    static double sigmoid(double z) noexcept;
 
-    void fit(const Matrix& X, const std::vector<double>& y);
-    std::vector<double> predict(const Matrix& X) const;
-    double score(const Matrix& X, const std::vector<double>& y) const;
-    double compute_cost(const Matrix& X, const std::vector<double>& y) const;
+    explicit LogisticRegression(double learning_rate = 0.01, size_t epochs = 1000, bool fit_intercept = true);
+
+    void fit(const Matrix& X, const std::vector<int>& y);
+    std::vector<int> predict(const Matrix& X, double threshold = 0.5) const;
+    std::vector<double> predict_proba(const Matrix& X) const;
+    double score(const Matrix& X, const std::vector<int>& y) const;
+    double compute_loss(const Matrix& X, const std::vector<int>& y) const;
 
     const Vector& weights() const { return weights_; }
     double bias() const noexcept { return bias_; }
@@ -32,3 +35,4 @@ public:
 };
 
 } // namespace morphosml
+

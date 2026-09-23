@@ -1,6 +1,6 @@
 import os
 import sys
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 import pybind11
 
@@ -16,6 +16,10 @@ ext_modules = [
             'cpp/src/vector.cpp',
             'cpp/src/matrix.cpp',
             'cpp/src/knn.cpp',
+            'cpp/src/linear_regression.cpp',
+            'cpp/src/logistic_regression.cpp',
+            'cpp/src/data/sampler.cpp',
+            'cpp/src/data/mmap_buffer.cpp',
             'cpp/src/bindings.cpp',
         ],
         include_dirs=[
@@ -74,7 +78,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     license='MIT',
-    packages=['morphosml'],
+    packages=find_packages(where='src'),
     package_dir={'': 'src'},
     ext_modules=ext_modules,
     cmdclass={'build_ext': BuildExt},
