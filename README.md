@@ -1,6 +1,7 @@
 # MorphosML v0.3.1
 
 [![CI](https://github.com/MorphosML/MorphosML/actions/workflows/ci.yml/badge.svg)](https://github.com/MorphosML/MorphosML/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/morphosml.svg)](https://badge.fury.io/py/morphosml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![C++: 17](https://img.shields.io/badge/C%2B%2B-17-brightgreen.svg)](https://isocpp.org/)
@@ -11,30 +12,51 @@ Designed from first principles for **High-Performance Computing (HPC)**, Morphos
 
 ---
 
-## 📚 Documentation & Guides
+## ⚡ Performance Breakthrough (v0.2.0 vs v0.3.1)
 
-Explore the comprehensive MorphosML documentation library:
-- 🏗️ **[Architectural Blueprint](docs/architecture.md)**: Deep dive into contiguous memory layouts, zero-copy buffer protocol, POSIX `mmap` kernel caching, and asynchronous double buffering.
-- 📖 **[API Reference](docs/api_reference.md)**: Exhaustive class and method specifications for `Matrix`, `Vector`, `TensorView`, `MMapDataset`, `DataLoader`, `calculus`, and models.
-- 🚀 **[Quickstart Tutorial](docs/tutorials/quickstart.md)**: Step-by-step introduction from installation to model evaluation.
-- ⚡ **[High-Performance Ingestion Tutorial](docs/tutorials/hpc_ingestion.md)**: Out-of-core `.mldat` streaming, idempotent sampling, and cursor checkpoint recovery.
-- 🧮 **[Calculus & Differentiable Programming](docs/tutorials/calculus_autodiff.md)**: $\mathcal{O}(h^4)$ Taylor stencils, gradients, Jacobians, Hessians, quadrature, and limits.
+In v0.3.x, MorphosML transitioned from fragmented `std::vector<std::vector<double>>` structures to **cache-aligned contiguous flat memory** and **zero-copy `TensorView`** buffers. 
+
+![MorphosML v0.2.0 vs v0.3.0 Benchmark](docs/morphosml_v0.2_vs_v0.3_benchmark.png)
+
+### Empirical Benchmark Summary
+
+| Benchmark | v0.2.0 (Legacy) | v0.3.1 (HPC Core) | **Performance Gain** |
+| :--- | :--- | :--- | :--- |
+| **NumPy $\to$ C++ Latency (90K elements)** | 2.23 ms | **0.0103 ms** | **🚀 216.6x faster** |
+| **NumPy $\to$ C++ Latency (4M elements)** | 125.63 ms | **2.2891 ms** | **🚀 54.9x faster** |
+| **Memory Allocation Overhead** | 31+ MB duplicated | **0.0 MB** | **✨ 100% Zero-Copy** |
+| **Batch Ingestion Rate (200k samples)** | 6.51M samples/sec | **15.87M samples/sec** | **⚡ 2.44x higher throughput** |
+
+> Run the benchmark yourself: `python scripts/compare_versions.py`
+
+---
+
+## 📚 Documentation Library
+
+- 💻 **[CLI Commands & Developer Cheatsheet](docs/cli_commands.md)**: Full guide to build, test, lint, benchmark, and deploy commands.
+- 📖 **[API Reference](docs/api_reference.md)**: Exhaustive class, function, and parameter specifications.
+- 🏗️ **[Architectural Blueprint](docs/architecture.md)**: Deep dive into contiguous memory layouts, buffer protocol, and asynchronous double buffering.
+- 🚀 **[Quickstart Tutorial](docs/tutorials/quickstart.md)**: Step-by-step introduction from installation to training.
+- ⚡ **[High-Performance Ingestion Tutorial](docs/tutorials/hpc_ingestion.md)**: Out-of-core `.mldat` streaming, idempotent sampling, and cursor recovery.
+- 🧮 **[Calculus & Differentiable Programming](docs/tutorials/calculus_autodiff.md)**: $\mathcal{O}(h^4)$ Taylor stencils, gradients, Jacobians, Hessians, and limits.
 - 📐 **[LaTeX Visualization & Jupyter Integration](docs/tutorials/latex_visualization.md)**: LaTeX mathematical typesetting and native interactive notebook rendering.
-- 🤝 **[Contributing Guide](CONTRIBUTING.md)**: Development setup, building C++ extensions, formatting standards, and pull request workflows.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)**: Development setup, code style, and pull request workflows.
 
 ---
 
 ## Table of Contents
 
 - [Core Principles](#core-principles)
-- [Architecture & Performance](#architecture--performance)
+- [System Architecture](#system-architecture)
+- [CLI Commands Cheatsheet](#cli-commands-cheatsheet)
 - [Installation](#installation)
 - [Quickstart Guide](#quickstart-guide)
-- [Memory & Linear Algebra Layer](#memory--linear-algebra-layer)
-- [Out-of-Core Data Ingestion Engine](#out-of-core-data-ingestion-engine)
-- [Calculus & Differentiable Programming Core](#calculus--differentiable-programming-core)
-- [Machine Learning Models](#machine-learning-models)
-- [Latexify & Jupyter Notebook Integration](#latexify--jupyter-notebook-integration)
+- [Comprehensive Functionality Guide](#comprehensive-functionality-guide)
+  - [1. High-Performance Linear Algebra & Zero-Copy Views](#1-high-performance-linear-algebra--zero-copy-views)
+  - [2. Out-of-Core Data Ingestion & Streaming Engine](#2-out-of-core-data-ingestion--streaming-engine)
+  - [3. Numerical Calculus & Autodiff Core](#3-numerical-calculus--autodiff-core)
+  - [4. Machine Learning Models](#4-machine-learning-models)
+  - [5. LaTeX Typesetting & Jupyter Notebook Integration](#5-latex-typesetting--jupyter-notebook-integration)
 - [Verification & CI/CD Pipeline](#verification--cicd-pipeline)
 - [License & Author](#license--author)
 
@@ -42,18 +64,16 @@ Explore the comprehensive MorphosML documentation library:
 
 ## Core Principles
 
-MorphosML is governed by four core architectural tenets:
-
 | Principle | Engineering Implementation |
 | :--- | :--- |
 | **High Performance (HPC)** | Contiguous 1D flat buffers, zero-copy Python Buffer Protocol, $i$-$k$-$j$ cache-line matrix multiplication, and POSIX `mmap` with `MADV_SEQUENTIAL`. |
-| **Idempotency** | Reproducible batch sequencing and shuffling across epochs and workers using deterministic SplitMix64 PRNG: $\text{state} = \text{seed} \oplus (\text{epoch} \cdot C_1 + C_2)$. |
+| **Idempotency** | Reproducible batch sequencing across epochs and workers using deterministic SplitMix64 PRNG: $\text{state} = \text{seed} \oplus (\text{epoch} \cdot C_1 + C_2)$. |
 | **Fault-Tolerance** | Sub-millisecond cursor tokens (`epoch:sample_offset:checksum`). Training pipelines resume mid-epoch after crashes without re-streaming from line 0. |
 | **Resiliency** | FNV-1a 64-bit binary checksum validation, shape verification, and poison record isolation preventing memory faults or silent data corruption. |
 
 ---
 
-## Architecture & Performance
+## System Architecture
 
 ```
 MorphosML System Topology
@@ -82,28 +102,39 @@ MorphosML System Topology
 
 ---
 
+## CLI Commands Cheatsheet
+
+| Task | Command | Description |
+| :--- | :--- | :--- |
+| **Install Release** | `pip install morphosml` | Install latest release from PyPI |
+| **Local Dev Install** | `pip install -e . --no-build-isolation --no-deps` | Compile and install in editable mode |
+| **Run Tests** | `pytest tests/ -v` | Run the complete 71-test validation suite |
+| **Lint Code** | `ruff check src/ tests/` | Check code quality and PEP 8 compliance |
+| **Format Code** | `black --check src/ tests/` | Check standard 88-character formatting |
+| **Run Benchmarks** | `python scripts/compare_versions.py` | Benchmark latency, memory, and throughput |
+| **CI Pre-Flight** | `./scripts/ci_deploy.sh --check-only` | Run local build, lint, format & test suite |
+| **Build Packages** | `python -m build` | Build source distribution and wheels |
+| **Verify Artifacts** | `twine check dist/*` | Validate distribution packages for PyPI |
+| **Deploy to PyPI** | `twine upload dist/*` | Upload package releases to PyPI |
+
+*For advanced command options, see the **[CLI Commands Guide](docs/cli_commands.md)**.*
+
+---
+
 ## Installation
 
-### From Source (Recommended for Local Dev)
-
-Requirements: C++17 compatible compiler (`g++` or `clang++`), CMake >= 3.15, Python >= 3.10.
-
+### From PyPI (Standard)
 ```bash
-# Clone the repository
-git clone https://github.com/MorphosML/MorphosML.git
-cd MorphosML
-
-# Build and install in editable mode
-pip install -e . --no-build-isolation --no-deps
+pip install morphosml
 ```
 
-### Pre-Flight Automated Validation Script
-
-MorphosML includes a dedicated CI validation and deployment script:
+### From Source (Local Development)
+Requirements: C++17 compiler (`g++` or `clang++`), CMake $\ge 3.15$, Python $\ge 3.10$.
 
 ```bash
-# Run local compilation, Black, Ruff, and 100% test suite
-./scripts/ci_deploy.sh --check-only
+git clone https://github.com/MorphosML/MorphosML.git
+cd MorphosML
+pip install -e . --no-build-isolation --no-deps
 ```
 
 ---
@@ -112,211 +143,281 @@ MorphosML includes a dedicated CI validation and deployment script:
 
 ```python
 import numpy as np
-import morphosml as mml
+import morphosml as ml
 
-# 1. HPC Linear Algebra (Zero-Copy Interoperability)
-mat = mml.Matrix.random(1000, 1000, seed=42)
-np_arr = np.asarray(mat)  # Zero-copy view! 0 memory allocated
+# 1. Zero-Copy TensorView into NumPy data
+data = np.random.randn(100, 4)
+view = ml.TensorView(data)
+print(f"TensorView shape: {view.shape}")
 
-# 2. Calculus & Differentiable Programming
-@mml.differentiable
-def loss_fn(v):
-    x, y = v[0], v[1]
-    return (1.0 - x)**2 + 100.0 * (y - x**2)**2
+# 2. Train C++ Linear Regression
+X = ml.Matrix([[1.0], [2.0], [3.0], [4.0]])
+y = ml.Vector([2.0, 4.0, 6.0, 8.0])
+model = ml.LinearRegression(learning_rate=0.01, epochs=300).fit(X, y)
 
-grad = loss_fn.grad([1.0, 1.0])       # [0.0, 0.0]
-hess = loss_fn.hessian([1.0, 1.0])    # 2x2 curvature Matrix
+# 3. Predict & Score
+preds = model.predict(X)
+print(f"Predictions: {preds}")
 
-# 3. Machine Learning with C++ Core
-X = np.random.randn(200, 5)
-y = X @ np.array([1.5, -2.0, 0.5, 3.0, -1.0]) + 0.25
+# 4. Calculus Derivative
+f_prime = ml.calculus.derivative(lambda x: x**2 + 3*x, x=2.0)
+print(f"f'(2.0) = {f_prime}")  # 7.0
 
-X_train, X_test, y_train, y_test = mml.train_test_split(X, y, test_size=0.2, random_state=42)
-model = mml.LinearRegression(learning_rate=0.01, epochs=1000)
-model.fit(X_train, y_train)
-
-print(f"R2 Score: {model.score(X_test, y_test):.4f}")
-
-# 4. Rich LaTeX Math Export
-print(mml.to_latex(model))
-# Output: \hat{y} = 1.5 x_{1} - 2 x_{2} + 0.5 x_{3} + 3 x_{4} - 1 x_{5} + 0.25
+# 5. Format Model to LaTeX
+print(ml.latex.latexify(model))
+# Output: \hat{y} = 1.9842\,x_{1} + 0.0475
 ```
 
 ---
 
-## Memory & Linear Algebra Layer
+## Comprehensive Functionality Guide
 
-### Contiguous 1D Flat `Matrix`
-Unlike naive implementations that allocate `vector<vector<double>>` (causing cache-line invalidations and pointer chasing), MorphosML allocates a single contiguous buffer `vector<double> data_` of length `rows * cols`.
+### 1. High-Performance Linear Algebra & Zero-Copy Views
 
-- **Element Access**: `mat(i, j)`, `mat[i, j]`, `mat.row_ptr(i)`.
-- **$i$-$k$-$j$ Loop Ordering**: Matrix multiplication uses unit memory strides in the inner loop, unlocking compiler auto-vectorization (AVX2/AVX-512) and 100% cache-line utilization.
-- **Buffer Protocol**: Pass matrices directly to NumPy or Polars via `np.asarray(matrix)` without duplicating memory.
+#### Contiguous Flat `Matrix`
+MorphosML stores matrices as contiguous 1D flat buffers (`rows * cols`), ensuring optimal spatial locality and full CPU cache line utilization:
 
-### Non-Owning `TensorView`
-Wraps arbitrary 2D pointers with row stride:
 ```python
-from morphosml import TensorView, tensor_view_from_numpy
+import morphosml as ml
+import numpy as np
 
-# Wrap a NumPy array without copying
-arr = np.ones((500, 20), dtype=np.float64)
-view = tensor_view_from_numpy(arr)
+# Construct matrix
+A = ml.Matrix([[1.0, 2.0], [3.0, 4.0]])
+B = ml.Matrix.identity(2)
 
-assert view.rows() == 500
-assert view.cols() == 20
+# Arithmetic & cache-optimized i-k-j multiplication
+C = A @ B + A
+
+# Element access & properties
+print(f"Shape: ({C.rows()}, {C.cols()}), Element (0, 1): {C[0, 1]}")
+
+# Zero-Copy NumPy interoperability via Python Buffer Protocol
+arr = np.asarray(C)  # Shares underlying C++ memory pointer without copying!
+```
+
+#### Non-Owning `TensorView`
+Wraps external memory (NumPy arrays, mmap addresses, raw pointers) with row stride:
+
+```python
+raw_np = np.ones((1000, 32), dtype=np.float64)
+
+# Create zero-copy view (takes < 0.01 ms, 0 MB heap allocation)
+view = ml.TensorView(raw_np)
+
+print(f"Rows: {view.rows()}, Cols: {view.cols()}, Stride: {view.stride()}")
+print(f"Element (10, 5): {view[10, 5]}")
+
+# Materialize to owning C++ Matrix only when needed
+owned_mat = view.to_matrix()
+```
+
+#### 1D `Vector`
+```python
+v = ml.Vector([3.0, 4.0])
+print(f"Norm: {v.norm()}")        # 5.0
+print(f"Unit: {v.normalized().to_list()}")  # [0.6, 0.8]
+print(f"Dot:  {v.dot(ml.Vector([1.0, 2.0]))}") # 11.0
 ```
 
 ---
 
-## Out-of-Core Data Ingestion Engine
+### 2. Out-of-Core Data Ingestion & Streaming Engine
 
-### Native Binary `.mldat` Format
-Parsing text datasets (e.g. CSV) wastes up to 80% of CPU cycles in `strtod`. MorphosML provides a native binary format (`.mldat`) with a 64-byte header and FNV-1a checksum:
+#### Native Binary `.mldat` Format
+Bypasses text parsing (`strtod`) bottlenecks by dumping structured binary payloads with a 64-byte header and FNV-1a checksums:
 
 ```python
 from morphosml.data import MMapDataset, DataLoader
+import numpy as np
 
-# 1. Export NumPy array directly to binary .mldat
-data = np.random.randn(100000, 64).astype(np.float64)
-MMapDataset.dump("dataset_100k.mldat", data)
+# 1. Dump dataset to binary .mldat
+X = np.random.randn(100_000, 32).astype(np.float64)
+MMapDataset.dump("dataset_100k.mldat", X)
 
-# 2. Map dataset instantly (0 ms load time)
+# 2. Map dataset into memory instantly (0 ms load time)
 dataset = MMapDataset("dataset_100k.mldat")
-print(f"Dataset Shape: {dataset.shape}, Checksum: {dataset.checksum}")
-
-# 3. Create high-performance, fault-tolerant DataLoader
-loader = DataLoader(
-    dataset,
-    batch_size=64,
-    shuffle=True,
-    seed=1337,
-    prefetch_batches=2  # Asynchronous background double-buffering
-)
+print(f"Shape: {dataset.shape}, Checksum: {dataset.checksum}")
 ```
 
-### Idempotency & Fault-Tolerant Checkpointing
+#### Asynchronous Prefetched `DataLoader`
+Features double-buffering prefetch queues to saturate NVMe drive bandwidth and eliminate GPU/CPU I/O bubbles:
+
 ```python
-# Checkpoint mid-epoch
+loader = DataLoader(
+    dataset,
+    batch_size=256,
+    shuffle=True,
+    seed=42,             # Idempotent deterministic seed
+    prefetch_batches=2   # Background worker queue
+)
+
+for epoch in range(5):
+    for batch in loader:
+        # batch is a contiguous zero-copy TensorView / NumPy array
+        process_batch(batch)
+```
+
+#### Cursor Checkpointing & Fault Tolerance
+Save and restore exact training batch offsets without restarting dataset iterations:
+
+```python
+# Save state during training loop
 for i, batch in enumerate(loader):
-    if i == 500:
+    if i == 150:
         cursor = loader.get_cursor()
-        saved_token = cursor.to_string() # e.g. "0:32000:14695981039346656037"
+        token = cursor.to_string()  # "epoch:sample_offset:checksum"
         break
 
-# Resume from exact sample offset in a new process without re-reading:
-new_loader = DataLoader(dataset, batch_size=64, shuffle=True, seed=1337)
-new_loader.resume_from(saved_token)
+# Resume in a fresh process from exact sample offset
+new_loader = DataLoader(dataset, batch_size=256, shuffle=True, seed=42)
+new_loader.resume_from(token)
 ```
 
 ---
 
-## Calculus & Differentiable Programming Core
+### 3. Numerical Calculus & Autodiff Core
 
-MorphosML provides a high-precision numerical calculus engine implemented in C++:
+#### Numerical Differentiation & Derivatives
+Computes $\mathcal{O}(h^4)$ 5-point central-difference derivatives up to 3rd order:
 
-### Numerical Differentiation & Derivatives
 ```python
 import math
 from morphosml.calculus import derivative, gradient, jacobian, hessian
 
-# 1st, 2nd, 3rd derivatives with O(h^4) 5-point stencils
+# Scalar Derivatives (order 1, 2, or 3)
 f = lambda x: math.sin(x)
-print(derivative(f, 0.0, order=1))  # 1.0 (cos(0))
-print(derivative(f, 0.0, order=2))  # 0.0 (-sin(0))
+print("f'(0):",   derivative(f, 0.0, order=1))  # 1.0 (cos(0))
+print("f''(0):",  derivative(f, 0.0, order=2))  # 0.0 (-sin(0))
 
 # Multivariate Gradient
 f_multi = lambda v: v[0]**2 + 3.0 * v[1]**2
-print(gradient(f_multi, [2.0, 1.0]))  # [4.0, 6.0]
+print("Grad:", gradient(f_multi, [2.0, 1.0]))   # [4.0, 6.0]
 
-# Jacobian Matrix
-f_vec = lambda v: [v[0]**2 + v[1], 3.0 * v[0] - v[1]**2]
-J = jacobian(f_vec, [2.0, 3.0])  # Shape (2, 2)
+# Jacobian Matrix for vector functions f: R^n -> R^m
+f_vec = lambda v: [v[0]**2 + v[1], 3.0*v[0] - v[1]**2]
+print("Jacobian:\n", jacobian(f_vec, [2.0, 3.0]).to_list())
 
 # Hessian Matrix (Curvature)
-H = hessian(f_multi, [1.0, 1.0])  # [[2.0, 0.0], [0.0, 6.0]]
+print("Hessian:\n", hessian(f_multi, [1.0, 1.0]).to_list())
 ```
 
-### Numerical Integration (Quadrature)
+#### Numerical Quadrature (Integrals)
 ```python
 from morphosml.calculus import integrate, integrate_2d
 
-# 1D Integrals: 'simpson' (O(h^4)), 'trapezoidal', 'simpson_38', 'gauss_legendre'
-val = integrate(math.sin, 0.0, math.pi, method="simpson")
-print(val)  # 2.0
+# 1D Integration ('simpson', 'trapezoidal', 'simpson_38', 'gauss_legendre')
+area = integrate(math.sin, 0.0, math.pi, method="gauss_legendre")
+print("∫ sin(x) dx:", area)  # 2.0000
 
-# 2D Double Integral: integral_0^1 integral_0^1 (x + y) dx dy
-val_2d = integrate_2d(lambda x, y: x + y, 0.0, 1.0, 0.0, 1.0)
-print(val_2d)  # 1.0
+# 2D Double Integration
+vol = integrate_2d(lambda x, y: x * y, 0.0, 1.0, 0.0, 2.0)
+print("∬ xy dx dy:", vol)    # 1.0000
 ```
 
-### Numerical Limits
+#### Limits & Removable Singularities
 ```python
 from morphosml.calculus import limit, evaluate_limit
 
-# Removable singularity: lim_{x -> 0} sin(x)/x = 1.0
-print(limit(lambda x: math.sin(x) / x, 0.0))  # 1.0
+# Two-sided limit with 0/0 removable singularity:
+# Both positional and keyword arguments ('x' or 'x_target') are supported
+val = limit(lambda x: (x**2 - 1) / (x - 1), x=1.0)
+print("lim_{x->1} (x^2 - 1)/(x - 1) =", val)  # 2.0000
 
-# One-sided infinite limits
-diag = evaluate_limit(lambda x: 1.0 / x, 0.0, direction="right")
-print(diag.is_infinite, diag.value)  # True, +inf
+# Diagnostic limit evaluation
+diag = evaluate_limit(lambda x: 1.0 / x, x=0.0, direction="right")
+print(f"Exists: {diag.exists}, Infinite: {diag.is_infinite}, Value: {diag.value}")
+```
+
+#### Fluent `@differentiable` Decorator
+```python
+from morphosml.calculus import differentiable
+
+@differentiable
+def loss(v):
+    return (1.0 - v[0])**2 + 100.0 * (v[1] - v[0]**2)**2
+
+print("Loss at (1, 1):", loss([1.0, 1.0]))
+print("Grad at (1, 1):", loss.grad([1.0, 1.0]))
+print("Hessian matrix:", loss.hessian([1.0, 1.0]).to_list())
 ```
 
 ---
 
-## Machine Learning Models
+### 4. Machine Learning Models
 
 | Model | Core Language | Optimization | Features |
 | :--- | :--- | :--- | :--- |
 | **`LinearRegression`** | C++17 | Gradient Descent | Contiguous memory, $R^2$, MSE cost, `fit`, `predict`, `score` |
 | **`LogisticRegression`** | C++17 | Gradient Descent + Sigmoid | Binary Cross-Entropy loss, `predict_proba`, `score` |
-| **`KNN`** | C++17 | Vectorized Euclidean distance | Configurable `k`, single & bulk classification |
+| **`KNN`** | C++17 | Vectorized Euclidean distance | Configurable `k`, bulk classification |
 
 ```python
-from morphosml import LogisticRegression
+import morphosml as ml
 
-clf = LogisticRegression(learning_rate=0.05, epochs=500)
-clf.fit(X_train, y_train)
+# Data preparation
+X = ml.Matrix([[1.0], [2.0], [3.0], [4.0], [5.0]])
+y = ml.Vector([2.1, 3.9, 6.2, 7.8, 10.1])
 
-y_pred = clf.predict(X_test, threshold=0.5)
-probabilities = clf.predict_proba(X_test)
-print(f"Accuracy: {clf.score(X_test, y_test):.2%}")
+# Linear Regression
+lr = ml.LinearRegression(learning_rate=0.01, epochs=500)
+lr.fit(X, y)
+print(f"R2 Score: {lr.score(X, y):.4f}")
+
+# Logistic Regression
+y_cls = ml.Vector([0.0, 0.0, 1.0, 1.0, 1.0])
+clf = ml.LogisticRegression(learning_rate=0.1, epochs=300)
+clf.fit(X, y_cls)
+print(f"Probabilities: {clf.predict_proba(X)}")
+print(f"Class Accuracy: {clf.score(X, y_cls):.2%}")
+```
+
+#### Evaluation Metrics & Splitting
+```python
+from morphosml.utils import train_test_split, accuracy_score, mean_squared_error, r2_score
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+print("MSE:", mean_squared_error([1.0, 2.0], [1.1, 1.9]))
+print("Acc:", accuracy_score([0, 1, 1], [0, 1, 0]))
 ```
 
 ---
 
-## Latexify & Jupyter Notebook Integration
+### 5. LaTeX Typesetting & Jupyter Notebook Integration
 
-MorphosML makes presenting and publishing mathematical results effortless:
+MorphosML makes presenting mathematical results effortless by converting models, matrices, and expressions directly into publication-ready LaTeX syntax:
 
 ```python
-import morphosml as mml
+import morphosml as ml
 
-# LaTeX conversion
-mat = mml.Matrix.identity(3)
-print(mml.to_latex(mat))
+# Format trained model
+model = ml.LinearRegression().fit(X, y)
+print(ml.latex.latexify(model))
+# Output: \hat{y} = 1.9842\,x_{1} + 0.0475
+
+# Format matrix
+matrix = ml.Matrix.identity(3)
+print(ml.latex.to_latex(matrix))
 # Output: \begin{pmatrix}1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1\end{pmatrix}
 
-# In Jupyter Notebooks, simply evaluating any Matrix, Vector, or fitted Model
-# automatically renders KaTeX math typography via _repr_latex_():
-model = mml.LinearRegression().fit(X, y)
-mml.latexify(model)
+# Enable automatic KaTeX rendering in Jupyter Notebooks:
+ml.latex.enable_notebook_latex()
+# Now simply evaluating `model` or `matrix` in a notebook cell renders formatted math!
 ```
 
 ---
 
 ## Verification & CI/CD Pipeline
 
-The test suite validates correctness across all linear algebra, calculus, data ingestion, and model components:
+MorphosML includes a rigorous validation pipeline with **71 passing unit tests** across Python and C++:
 
 ```bash
 pytest tests/ -v
-# ============================== 61 passed in 0.22s ==============================
+# ============================== 71 passed in 0.18s ==============================
 ```
 
-Code quality and style are strictly maintained:
-- **Black Formatter**: Targeted for Python 3.12 (`line-length = 88`).
-- **Ruff Linter**: PEP 8 compliance, zero warnings.
-- **GitHub Actions Matrix**: Automated multi-OS workflows running tests across Python 3.10, 3.11, and 3.12 with Docker volume isolation.
+- **Code Quality**: Enforced via `black --check` (88 chars) and `ruff check` (PEP 8).
+- **GitHub Actions Matrix**: Automated Linux, macOS, and Windows testing on Python 3.10, 3.11, and 3.12.
+- **Packaging Integrity**: Fully verified with `twine check`.
 
 ---
 
