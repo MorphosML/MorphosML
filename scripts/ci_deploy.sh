@@ -56,6 +56,7 @@ if ! "${PYTHON_BIN}" -m pip install -e . --no-build-isolation --no-deps; then
     log_warn "Isolated build failed, attempting standard editable install..."
     "${PYTHON_BIN}" -m pip install -e .
 fi
+"${PYTHON_BIN}" setup.py build_ext --inplace
 log_success "C++ core successfully built and linked."
 
 # ------------------------------------------------------------------------------

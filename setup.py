@@ -1,6 +1,6 @@
 import os
 import sys
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 import pybind11
 
@@ -16,12 +16,20 @@ ext_modules = [
             'cpp/src/vector.cpp',
             'cpp/src/matrix.cpp',
             'cpp/src/knn.cpp',
+            'cpp/src/linear_regression.cpp',
+            'cpp/src/logistic_regression.cpp',
+            'cpp/src/data/sampler.cpp',
+            'cpp/src/data/mmap_buffer.cpp',
+            'cpp/src/calculus/differentiation.cpp',
+            'cpp/src/calculus/integration.cpp',
+            'cpp/src/calculus/limits.cpp',
             'cpp/src/bindings.cpp',
         ],
         include_dirs=[
             get_pybind_include(),
             pybind11.get_include(),
             'cpp/include',
+            'cpp/include/morphosml',
         ],
         language='c++',
         extra_compile_args=['-std=c++17', '-O3', '-fPIC'],
@@ -67,14 +75,14 @@ except FileNotFoundError:
 
 setup(
     name='morphosml',
-    version='0.2.0',
+    version='0.3.1',
     author='Gabriel Carmona',
     author_email='gabrielcarmonabittencourtpy@gmail.com',
     description='High-performance machine learning library with C++ core',
     long_description=long_description,
     long_description_content_type='text/markdown',
     license='MIT',
-    packages=['morphosml'],
+    packages=find_packages(where='src'),
     package_dir={'': 'src'},
     ext_modules=ext_modules,
     cmdclass={'build_ext': BuildExt},
