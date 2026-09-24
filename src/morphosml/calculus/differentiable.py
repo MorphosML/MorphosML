@@ -219,9 +219,11 @@ def integrate_2d(
 
 def limit(
     f: Callable[[float], float],
-    x_target: float,
+    x_target: float | None = None,
     direction: str = "both",
     tol: float = 1e-6,
+    *,
+    x: float | None = None,
 ) -> float:
     """Compute numerical limit lim_{x -> x_target} f(x).
 
@@ -229,8 +231,8 @@ def limit(
     ----------
     f : Callable[[float], float]
         Function to evaluate.
-    x_target : float
-        Target evaluation limit point.
+    x_target : float, optional
+        Target evaluation limit point. Can also be specified as `x`.
     direction : str, default='both'
         Direction of approach:
         - 'both': Two-sided limit (requires left and right limits to agree within tol).
@@ -238,6 +240,8 @@ def limit(
         - 'right': Right-hand limit x -> a^+.
     tol : float, default=1e-6
         Relative convergence tolerance.
+    x : float, optional
+        Alias for `x_target`.
 
     Returns
     -------
@@ -246,17 +250,24 @@ def limit(
 
     Raises
     ------
+    ValueError
+        If neither `x_target` nor `x` is specified.
     RuntimeError
         If the two-sided limit does not exist or if the function diverges to infinity.
     """
-    return _core_calc.limit(f, float(x_target), direction, float(tol))
+    target = x if x is not None else x_target
+    if target is None:
+        raise ValueError("A target point must be specified via x_target or x.")
+    return _core_calc.limit(f, float(target), direction, float(tol))
 
 
 def evaluate_limit(
     f: Callable[[float], float],
-    x_target: float,
+    x_target: float | None = None,
     direction: str = "both",
     tol: float = 1e-6,
+    *,
+    x: float | None = None,
 ) -> _core_calc.LimitResult:
     """Evaluate numerical limit and return full diagnostic structure.
 
@@ -264,19 +275,29 @@ def evaluate_limit(
     ----------
     f : Callable[[float], float]
         Function to evaluate.
-    x_target : float
-        Target evaluation point.
+    x_target : float, optional
+        Target evaluation point. Can also be specified as `x`.
     direction : str, default='both'
         Direction of approach ('both', 'left', or 'right').
     tol : float, default=1e-6
         Convergence tolerance.
+    x : float, optional
+        Alias for `x_target`.
 
     Returns
     -------
     LimitResult
         Result containing `value`, `exists`, `is_infinite`, and `direction`.
+
+    Raises
+    ------
+    ValueError
+        If neither `x_target` nor `x` is specified.
     """
-    return _core_calc.evaluate_limit(f, float(x_target), direction, float(tol))
+    target = x if x is not None else x_target
+    if target is None:
+        raise ValueError("A target point must be specified via x_target or x.")
+    return _core_calc.evaluate_limit(f, float(target), direction, float(tol))
 
 
 class DifferentiableFunction:
@@ -311,10 +332,15 @@ class DifferentiableFunction:
         return integrate(self._fn, a, b, method=method, n=n)
 
     def limit(
-        self, x_target: float, direction: str = "both", tol: float = 1e-6
+        self,
+        x_target: float | None = None,
+        direction: str = "both",
+        tol: float = 1e-6,
+        *,
+        x: float | None = None,
     ) -> float:
         """Compute numerical limit."""
-        return limit(self._fn, x_target, direction=direction, tol=tol)
+        return limit(self._fn, x_target, direction=direction, tol=tol, x=x)
 
 
 def differentiable(fn: Callable[..., Any]) -> DifferentiableFunction:
