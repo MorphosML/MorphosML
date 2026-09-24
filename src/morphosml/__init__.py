@@ -44,7 +44,7 @@ from .data import (
 from .latex import enable_notebook_latex, latexify, to_latex
 from .utils import train_test_split
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "Gabriel Carmona"
 __license__ = "MIT"
 

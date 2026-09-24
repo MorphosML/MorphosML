@@ -1,4 +1,4 @@
-# MorphosML v0.3.0
+# MorphosML v0.3.1
 
 [![CI](https://github.com/MorphosML/MorphosML/actions/workflows/ci.yml/badge.svg)](https://github.com/MorphosML/MorphosML/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
