@@ -88,7 +88,7 @@ except FileNotFoundError:
 
 setup(
     name='morphosml',
-    version='0.3.1',
+    version='0.4.0',
     author='Gabriel Carmona',
     author_email='gabrielcarmonabittencourtpy@gmail.com',
     description='High-performance machine learning library with C++ core',

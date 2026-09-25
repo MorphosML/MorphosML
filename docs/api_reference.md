@@ -1,6 +1,6 @@
 # MorphosML API Reference
 
-Complete API specification for MorphosML v0.3.1.
+Complete API specification for MorphosML v0.4.0.
 
 ---
 
@@ -30,6 +30,10 @@ Complete API specification for MorphosML v0.3.1.
   - [LinearRegression](#linearregression)
   - [LogisticRegression](#logisticregression)
   - [KNN](#knn)
+- [Hardware Acceleration & Parallelism](#hardware-acceleration--parallelism)
+  - [get_simd_capabilities](#get_simd_capabilities)
+  - [get_num_threads](#get_num_threads)
+  - [set_num_threads](#set_num_threads)
 - [Evaluation Metrics & Utilities](#evaluation-metrics--utilities)
   - [train_test_split](#train_test_split)
   - [accuracy_score](#accuracy_score)
@@ -258,6 +262,33 @@ KNN(k: int = 3)
 ```
 - `fit(X: Matrix, y: Vector) -> KNN`: Stores training dataset.
 - `predict(X: Matrix) -> list[int]`: Predicts class labels using majority voting over Euclidean distances.
+
+---
+
+## Hardware Acceleration & Parallelism
+
+MorphosML v0.4.0 automatically detects CPU vector extensions (AVX2, FMA) and leverages multi-core OpenMP thread pools across linear algebra operations, gradient descent backpropagation, and KNN inference.
+
+### `get_simd_capabilities`
+```python
+morphosml.get_simd_capabilities() -> dict[str, bool]
+```
+Returns hardware features compiled and available at runtime on the host machine:
+```python
+{"avx2": True, "fma": True, "openmp": True}
+```
+
+### `get_num_threads`
+```python
+morphosml.get_num_threads() -> int
+```
+Returns the active number of worker threads utilized in OpenMP parallel regions.
+
+### `set_num_threads`
+```python
+morphosml.set_num_threads(num_threads: int) -> None
+```
+Configures the number of parallel worker threads used across matrix-matrix multiplication, distance matrices, and model training routines.
 
 ---
 
