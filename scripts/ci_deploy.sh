@@ -82,10 +82,18 @@ if ! "${PYTHON_BIN}" -m pytest tests/ -v; then
     log_error "Test suite failed! Aborting deployment to prevent pushing broken code."
     exit 1
 fi
-log_success "All unit tests passed cleanly (100%)."
+# ------------------------------------------------------------------------------
+# 5. Security & Vulnerability Audit (Resiliency)
+# ------------------------------------------------------------------------------
+log_info "Running multi-layer security & vulnerability audit..."
+if ! "${PYTHON_BIN}" "${SCRIPT_DIR}/security_audit.py"; then
+    log_error "Security audit failed! Potential vulnerability or secret leak detected."
+    exit 1
+fi
+log_success "Security audit passed cleanly (0 vulnerabilities, 0 leaks)."
 
 # ------------------------------------------------------------------------------
-# 5. Git Status Check & Auto Deployment
+# 6. Git Status Check & Auto Deployment
 # ------------------------------------------------------------------------------
 # Check for flags: --check-only or --skip-push
 SKIP_PUSH=false

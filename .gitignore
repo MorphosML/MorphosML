@@ -31,4 +31,8 @@ htmlcov/
 # Documentation
 site/
 
+# Sensitive credentials & environment
+*.env
+*.pem
+*.key
 venv.
