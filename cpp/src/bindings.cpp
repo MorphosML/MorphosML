@@ -17,6 +17,7 @@
 #include "morphosml/calculus/differentiation.hpp"
 #include "morphosml/calculus/integration.hpp"
 #include "morphosml/calculus/limits.hpp"
+#include "morphosml/simd/simd_ops.hpp"
 
 namespace py = pybind11;
 
@@ -43,6 +44,11 @@ PYBIND11_MODULE(_core, m) {
     // Global Seed & Reproducibility System
     m.def("set_seed", &morphosml::set_seed, py::arg("seed"), "Set global seed for reproducible computations");
     m.def("get_seed", &morphosml::get_seed, "Get current global seed");
+
+    // Hardware Acceleration & Parallelism Info
+    m.def("get_simd_capabilities", &morphosml::simd::get_simd_capabilities, "Returns hardware SIMD acceleration flags active at build time");
+    m.def("get_num_threads", &morphosml::simd::get_num_threads, "Returns current OpenMP thread count");
+    m.def("set_num_threads", &morphosml::simd::set_num_threads, py::arg("num_threads"), "Sets number of OpenMP worker threads");
 
     // Vector bindings
     py::class_<morphosml::Vector>(m, "Vector", py::buffer_protocol())
@@ -96,6 +102,7 @@ PYBIND11_MODULE(_core, m) {
             return s;
         })
         .def("to_list", &morphosml::Vector::to_std)
+        .def("to_std", &morphosml::Vector::to_std)
         .def_buffer([](morphosml::Vector &v) -> py::buffer_info {
             return py::buffer_info(
                 const_cast<double*>(v.data().data()),
@@ -144,6 +151,9 @@ PYBIND11_MODULE(_core, m) {
         .def("__mul__", [](const morphosml::Matrix& a, const morphosml::Matrix& b) {
             return a * b;
         })
+        .def("__mul__", [](const morphosml::Matrix& a, const morphosml::Vector& v) {
+            return a * v;
+        })
         .def("__mul__", [](const morphosml::Matrix& a, double scalar) {
             return a * scalar;
         })
@@ -165,6 +175,7 @@ PYBIND11_MODULE(_core, m) {
         .def_static("random", py::overload_cast<size_t, size_t, uint64_t>(&morphosml::Matrix::random),
                     py::arg("rows"), py::arg("cols"), py::arg("seed"))
         .def("to_list", &morphosml::Matrix::to_std)
+        .def("to_std", &morphosml::Matrix::to_std)
         .def_buffer([](morphosml::Matrix &mat) -> py::buffer_info {
             return py::buffer_info(
                 mat.data(),

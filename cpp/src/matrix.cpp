@@ -1,5 +1,6 @@
 #include "morphosml/matrix.hpp"
 #include "morphosml/tensor_view.hpp"
+#include "morphosml/simd/simd_ops.hpp"
 #include <cstring>
 #include <iomanip>
 
@@ -101,10 +102,7 @@ Matrix Matrix::operator+(const Matrix& other) const {
         throw std::invalid_argument("Matrices must have the same dimensions for addition");
     }
     Matrix result(n_rows, n_cols);
-    const size_t total = data_.size();
-    for (size_t i = 0; i < total; ++i) {
-        result.data_[i] = data_[i] + other.data_[i];
-    }
+    simd::vec_add(data_.data(), other.data_.data(), result.data_.data(), data_.size());
     return result;
 }
 
@@ -113,42 +111,23 @@ Matrix Matrix::operator-(const Matrix& other) const {
         throw std::invalid_argument("Matrices must have the same dimensions for subtraction");
     }
     Matrix result(n_rows, n_cols);
-    const size_t total = data_.size();
-    for (size_t i = 0; i < total; ++i) {
-        result.data_[i] = data_[i] - other.data_[i];
-    }
+    simd::vec_sub(data_.data(), other.data_.data(), result.data_.data(), data_.size());
     return result;
 }
 
 Matrix Matrix::operator*(double scalar) const {
     Matrix result(n_rows, n_cols);
-    const size_t total = data_.size();
-    for (size_t i = 0; i < total; ++i) {
-        result.data_[i] = data_[i] * scalar;
-    }
+    simd::vec_scale(data_.data(), scalar, result.data_.data(), data_.size());
     return result;
 }
 
-// HPC Cache-friendly i-k-j loop reordering
+// SIMD AVX2/FMA + OpenMP Parallel GEMM
 Matrix Matrix::operator*(const Matrix& other) const {
     if (n_cols != other.n_rows) {
         throw std::invalid_argument("Matrix inner dimensions must agree for multiplication");
     }
     Matrix result(n_rows, other.n_cols, 0.0);
-    const size_t p = other.n_cols;
-
-    for (size_t i = 0; i < n_rows; ++i) {
-        const double* a_row = this->row_ptr(i);
-        double* c_row = result.row_ptr(i);
-        for (size_t k = 0; k < n_cols; ++k) {
-            const double r = a_row[k];
-            const double* b_row = other.row_ptr(k);
-            // Sequential inner loop allows SIMD auto-vectorization
-            for (size_t j = 0; j < p; ++j) {
-                c_row[j] += r * b_row[j];
-            }
-        }
-    }
+    simd::parallel_gemm(data_.data(), other.data_.data(), result.data_.data(), n_rows, n_cols, other.n_cols);
     return result;
 }
 
@@ -157,13 +136,11 @@ Vector Matrix::operator*(const Vector& vec) const {
         throw std::invalid_argument("Matrix columns must match vector size");
     }
     Vector result(n_rows);
+#if defined(MORPHOSML_HAS_OPENMP)
+    #pragma omp parallel for schedule(static) if(n_rows > 64)
+#endif
     for (size_t i = 0; i < n_rows; ++i) {
-        const double* r = row_ptr(i);
-        double sum = 0.0;
-        for (size_t j = 0; j < n_cols; ++j) {
-            sum += r[j] * vec[j];
-        }
-        result[i] = sum;
+        result[i] = simd::dot(row_ptr(i), vec.data().data(), n_cols);
     }
     return result;
 }

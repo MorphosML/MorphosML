@@ -44,7 +44,7 @@ from .data import (
 from .latex import enable_notebook_latex, latexify, to_latex
 from .utils import train_test_split
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 __author__ = "Gabriel Carmona"
 __license__ = "MIT"
 
@@ -61,6 +61,9 @@ r2_score = _core.r2_score
 set_seed = _core.set_seed
 get_seed = _core.get_seed
 tensor_view_from_numpy = _core.tensor_view_from_numpy
+get_simd_capabilities = _core.get_simd_capabilities
+get_num_threads = _core.get_num_threads
+set_num_threads = _core.set_num_threads
 
 # Initialize notebook LaTeX representation hooks
 enable_notebook_latex()
@@ -86,7 +89,9 @@ __all__ = [
     "derivative",
     "differentiable",
     "from_numpy",
+    "get_num_threads",
     "get_seed",
+    "get_simd_capabilities",
     "gradient",
     "hessian",
     "integrate",
@@ -97,6 +102,7 @@ __all__ = [
     "limit",
     "mse",
     "r2_score",
+    "set_num_threads",
     "set_seed",
     "tensor_view_from_numpy",
     "to_latex",

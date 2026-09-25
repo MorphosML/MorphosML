@@ -1,4 +1,5 @@
 #include "morphosml/vector.hpp"
+#include "morphosml/simd/simd_ops.hpp"
 
 namespace morphosml {
 
@@ -7,10 +8,7 @@ Vector Vector::operator+(const Vector& other) const {
         throw std::invalid_argument("Vectors need to be of the same size for these operations");
     }
     Vector result(size());
-
-    for (size_t i = 0; i < size(); i++){
-        result[i] = data_[i] + other[i];
-    }
+    simd::vec_add(data_.data(), other.data_.data(), result.data_.data(), size());
     return result;
 } 
 
@@ -19,35 +17,21 @@ Vector Vector::operator-(const Vector& other) const {
         throw std::invalid_argument("Vectors need to be of the same size for these operations");
     }
     Vector result(size());
-
-    for (size_t i = 0; i < size(); i++){
-        result[i] = data_[i] - other[i];
-    }
+    simd::vec_sub(data_.data(), other.data_.data(), result.data_.data(), size());
     return result;
 } 
 
 Vector Vector::operator*(double scalar) const {
-
     Vector result(size());
-    for (size_t i = 0; i < size(); i++){
-        result[i] = data_[i] * scalar;
-    }
+    simd::vec_scale(data_.data(), scalar, result.data_.data(), size());
     return result;
-    
 } // scaling operation
 
 double Vector::dot(const Vector& other) const {
     if (size() != other.size()){
         throw std::invalid_argument("Vectors need to be of the same size for these operations"); 
     }
-    
-    double result = 0.0; 
-
-    for (size_t i = 0; i < size(); i++) {
-        result += data_[i] * other[i];
-    }
-    return result;
-    // dot product needs to result in the multiplication then sum of the products.
+    return simd::dot(data_.data(), other.data_.data(), size());
 }
 
 double Vector::norm() const {

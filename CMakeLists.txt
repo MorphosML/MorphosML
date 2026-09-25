@@ -15,6 +15,9 @@ add_compile_options(-fdiagnostics-color=always
 # Find pybind11
 find_package(pybind11 CONFIG REQUIRED)
 
+# Find OpenMP
+find_package(OpenMP)
+
 # Adding modules
 add_library(_core MODULE 
         cpp/src/vector.cpp
@@ -32,6 +35,21 @@ add_library(_core MODULE
 
 target_include_directories(_core PRIVATE cpp/include cpp/include/morphosml)
 target_link_libraries(_core PRIVATE pybind11::module)
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(_core PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
+# Compiler SIMD flags
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+if(COMPILER_SUPPORTS_AVX2)
+    target_compile_options(_core PRIVATE -mavx2)
+endif()
+if(COMPILER_SUPPORTS_FMA)
+    target_compile_options(_core PRIVATE -mfma)
+endif()
 
 set_target_properties(_core PROPERTIES
     PREFIX ""

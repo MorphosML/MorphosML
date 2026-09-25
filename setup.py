@@ -9,6 +9,19 @@ class get_pybind_include(object):
     def __str__(self):
         return pybind11.get_include()
 
+extra_compile_args = ['-std=c++17', '-O3', '-fPIC']
+extra_link_args = ['-std=c++17']
+
+if sys.platform == 'win32':
+    extra_compile_args = ['/std:c++17', '/O2', '/openmp', '/arch:AVX2']
+    extra_link_args = []
+elif sys.platform == 'darwin':
+    extra_compile_args.extend(['-mmacosx-version-min=10.9'])
+    extra_link_args.extend(['-mmacosx-version-min=10.9'])
+else:  # Linux / Unix
+    extra_compile_args.extend(['-fopenmp', '-mavx2', '-mfma'])
+    extra_link_args.extend(['-fopenmp'])
+
 ext_modules = [
     Extension(
         'morphosml._core',
@@ -32,8 +45,8 @@ ext_modules = [
             'cpp/include/morphosml',
         ],
         language='c++',
-        extra_compile_args=['-std=c++17', '-O3', '-fPIC'],
-        extra_link_args=['-std=c++17'],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
     ),
 ]
 
