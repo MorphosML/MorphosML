@@ -1,4 +1,5 @@
 #include "morphosml/knn.hpp"
+#include "morphosml/simd/simd_ops.hpp"
 #include <cmath>
 #include <stdexcept>
 
@@ -30,7 +31,7 @@ namespace morphosml {
         y_train_ = y;
     }
 
-    // Compute Euclidean distance between two vectors
+    // Compute Euclidean distance between two vectors using SIMD
     double KNN::euclidean_distance(
         const Vector& a,
         const Vector& b
@@ -38,97 +39,63 @@ namespace morphosml {
         if (a.size() != b.size()) {
             throw std::invalid_argument("Vectors must have the same dimension for Euclidean distance.");
         }
-
-        double sum = 0.0;
-
-        // Iterate through each feature
-        for (size_t i = 0; i < a.size(); i++) {
-
-            // Difference between coordinates
-            double diff = a[i] - b[i];
-
-            // Sum squared differences
-            sum += diff * diff;
-        }
-
-        // Return square root of the sum
-        return std::sqrt(sum);
+        return std::sqrt(simd::squared_distance(a.data().data(), b.data().data(), a.size()));
     }
 
-    // Predict a single sample
-    int KNN::predict_single(const Vector& x) const {
+    // Predict a single sample from raw pointer (zero intermediate allocations)
+    int KNN::predict_single(const double* x_ptr, size_t n_features) const {
         if (X_train_.rows() == 0) {
             throw std::runtime_error("Model not fitted yet");
         }
-        if (x.size() != X_train_.cols()) {
+        if (n_features != X_train_.cols()) {
             throw std::invalid_argument("Input sample feature dimension does not match fitted model.");
         }
-
-        // Max heap storing the K nearest neighbors
-        //
-        // The farthest neighbor among the K closest stays on top
-        // so we can efficiently remove it if we find a closer one.
         std::priority_queue<DistanceIndex> heap;
+        const size_t n_train = X_train_.rows();
+        const size_t k_val = static_cast<size_t>(k_);
 
-        // Compare input sample against ALL training samples
-        for (size_t i = 0; i < X_train_.rows(); i++) {
+        // Compare input sample against ALL training samples using SIMD squared distance
+        for (size_t i = 0; i < n_train; i++) {
+            const double* train_row = X_train_.row_ptr(i);
+            double dist_sq = simd::squared_distance(x_ptr, train_row, n_features);
 
-            // Get one training sample row (HPC contiguous zero-extra-allocation)
-            Vector x_train = X_train_.row(i);
-
-            // Compute distance from x to training sample
-            double dist = euclidean_distance(x, x_train);
-
-            // If heap is not full yet, push directly
-            if (heap.size() < static_cast<size_t>(k_)) {
-
-                heap.push({dist, i});
-
-            // Otherwise replace the farthest neighbor if current is closer
-            } else if (dist < heap.top().distance) {
-
-                // Remove current farthest neighbor
+            if (heap.size() < k_val) {
+                heap.push({dist_sq, i});
+            } else if (dist_sq < heap.top().distance) {
                 heap.pop();
-
-                // Add closer neighbor
-                heap.push({dist, i});
+                heap.push({dist_sq, i});
             }
         }
 
         // Store vote counts for each class label
-        //
-        // key   -> class label
-        // value -> number of votes
         std::unordered_map<int, int> votes;
 
         // Count labels from K nearest neighbors
         while (!heap.empty()) {
-
-            // Increase vote count for this label
             votes[y_train_[heap.top().index]]++;
-
             heap.pop();
         }
 
-        // Variables to track most voted class
+        // Find class with highest vote count
         int best_label = -1;
         int best_count = -1;
 
-        // Find class with highest vote count
         for (const auto& [label, count] : votes) {
-
             if (count > best_count) {
-
                 best_count = count;
                 best_label = label;
             }
         }
 
-        // Return predicted class
         return best_label;
     }
 
-    // Predict multiple samples
+    // Predict a single sample Vector
+    int KNN::predict_single(const Vector& x) const {
+        return predict_single(x.data().data(), x.size());
+    }
+
+    // Predict multiple samples with OpenMP parallelization
     std::vector<int> KNN::predict(const Matrix& X) const {
 
         // Ensure model has been trained
@@ -139,23 +106,18 @@ namespace morphosml {
             throw std::invalid_argument("Input feature count does not match fitted model.");
         }
 
-        // Store predictions
-        std::vector<int> predictions;
+        const size_t n_samples = X.rows();
+        const size_t n_features = X.cols();
+        std::vector<int> predictions(n_samples);
 
-        // Reserve memory for efficiency
-        predictions.reserve(X.rows());
-
-        // Predict each row independently
-        for (size_t i = 0; i < X.rows(); i++) {
-
-            // Extract sample row (HPC contiguous zero-extra-allocation)
-            Vector x = X.row(i);
-
-            // Predict and store result
-            predictions.push_back(predict_single(x));
+#if defined(MORPHOSML_HAS_OPENMP)
+        #pragma omp parallel for schedule(dynamic) if(n_samples > 8)
+#endif
+        for (size_t i = 0; i < n_samples; i++) {
+            predictions[i] = predict_single(X.row_ptr(i), n_features);
         }
 
         return predictions;
     }
 
-}
+} // namespace morphosml

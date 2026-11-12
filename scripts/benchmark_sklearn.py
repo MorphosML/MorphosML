@@ -1,7 +1,7 @@
 """
 MorphosML vs Scikit-Learn Performance Benchmark
 ================================================
-Empirical benchmarking script comparing MorphosML v0.3.1 with scikit-learn
+Empirical benchmarking script comparing MorphosML v0.4.0 with scikit-learn
 across K-Nearest Neighbors, Linear Regression, Logistic Regression,
 and Ingestion Throughput.
 """
@@ -351,7 +351,7 @@ def generate_plots(
         height=0.32,
         color=color_mml,
         alpha=0.9,
-        label="MorphosML v0.3.1",
+        label="MorphosML v0.4.0",
     )
     ax4.set_yticks(y_pos)
     ax4.set_yticklabels(capabilities, fontsize=9.5)
@@ -373,7 +373,7 @@ def generate_plots(
     )
 
     plt.suptitle(
-        "MorphosML v0.3.1 vs scikit-learn: Performance & Capability Benchmark",
+        "MorphosML v0.4.0 vs scikit-learn: Performance & Capability Benchmark",
         color="#38bdf8",
         fontsize=16,
         fontweight="bold",
@@ -388,7 +388,7 @@ def generate_plots(
 
 def main():
     print("=" * 70)
-    print("      MORPHOSML v0.3.1 vs SCIKIT-LEARN PERFORMANCE BENCHMARK")
+    print("      MORPHOSML v0.4.0 vs SCIKIT-LEARN PERFORMANCE BENCHMARK")
     print("=" * 70)
 
     knn_data = benchmark_knn()

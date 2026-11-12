@@ -121,16 +121,29 @@ black --check src/ tests/ scripts/
 black src/ tests/ scripts/
 ```
 
+### 4. Multi-Layer Security Breach & Leak Audit (`scripts/security_check.sh`)
+Scans repository for credentials, private keys, unsafe C++ functions, dependency vulnerabilities, and Bandit AST issues:
+```bash
+./scripts/security_check.sh
+```
+
 ---
 
 ## Benchmarking & Profiling
 
-### Run Version Comparison Benchmark (v0.2.0 vs v0.3.0)
-MorphosML provides an automated benchmarking script that measures memory conversion latency, memory footprint overhead, and batch ingestion throughput, automatically rendering a 4-panel dark-mode dashboard figure:
+### 1. Version Comparison Benchmark (v0.2.0 vs v0.3.0)
+Measures memory conversion latency, memory footprint overhead, and batch ingestion throughput:
 ```bash
 python scripts/compare_versions.py
 ```
-- **Output:** Outputs live terminal metrics table and writes **`docs/morphosml_v0.2_vs_v0.3_benchmark.png`**.
+- **Output:** Writes **`docs/morphosml_v0.2_vs_v0.3_benchmark.png`**.
+
+### 2. Scikit-Learn Hardware Acceleration Benchmark
+Empirically benchmarks MorphosML v0.4.0 (SIMD AVX2/FMA + OpenMP) against scikit-learn across KNN, Linear Regression, and Logistic Regression:
+```bash
+python scripts/benchmark_sklearn.py
+```
+- **Output:** Live speedup table and writes **`docs/morphosml_vs_sklearn_benchmark.png`**.
 
 ---
 

@@ -1,13 +1,33 @@
 import os
+import platform
 import sys
-from setuptools import setup, Extension, find_packages
-from setuptools.command.build_ext import build_ext
+
 import pybind11
+from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext
+
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path"""
     def __str__(self):
         return pybind11.get_include()
+
+extra_compile_args = ['-std=c++17', '-O3', '-fPIC']
+extra_link_args = ['-std=c++17']
+
+if sys.platform == 'win32':
+    extra_compile_args = ['/std:c++17', '/O2', '/openmp', '/arch:AVX2']
+    extra_link_args = []
+elif sys.platform == 'darwin':
+    mac_target = os.environ.get('MACOSX_DEPLOYMENT_TARGET')
+    if not mac_target:
+        mac_target = '11.0' if platform.machine() == 'arm64' else '10.13'
+        os.environ['MACOSX_DEPLOYMENT_TARGET'] = mac_target
+    extra_compile_args.append(f'-mmacosx-version-min={mac_target}')
+    extra_link_args.append(f'-mmacosx-version-min={mac_target}')
+else:  # Linux / Unix
+    extra_compile_args.extend(['-fopenmp', '-mavx2', '-mfma'])
+    extra_link_args.extend(['-fopenmp'])
 
 ext_modules = [
     Extension(
@@ -32,8 +52,8 @@ ext_modules = [
             'cpp/include/morphosml',
         ],
         language='c++',
-        extra_compile_args=['-std=c++17', '-O3', '-fPIC'],
-        extra_link_args=['-std=c++17'],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
     ),
 ]
 
@@ -55,9 +75,7 @@ class BuildExt(build_ext):
     """Custom build extension to add platform-specific flags"""
     def build_extensions(self):
         if sys.platform == 'darwin':
-            for ext in self.extensions:
-                ext.extra_compile_args.append('-mmacosx-version-min=10.9')
-                ext.extra_link_args.append('-mmacosx-version-min=10.9')
+            pass
         elif sys.platform == 'win32':
             for ext in self.extensions:
                 ext.extra_compile_args.append('/std:c++17')
@@ -75,7 +93,7 @@ except FileNotFoundError:
 
 setup(
     name='morphosml',
-    version='0.3.1',
+    version='0.4.0',
     author='Gabriel Carmona',
     author_email='gabrielcarmonabittencourtpy@gmail.com',
     description='High-performance machine learning library with C++ core',

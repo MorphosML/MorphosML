@@ -78,6 +78,11 @@ private:
     int predict_single(const Vector& x) const;
 
     /**
+     * @brief Predicts label for a contiguous memory buffer without allocations.
+     */
+    int predict_single(const double* x_ptr, size_t n_features) const;
+
+    /**
      * @brief Computes Euclidean distance between two vectors.
      */
     double euclidean_distance(const Vector& a, const Vector& b) const;
