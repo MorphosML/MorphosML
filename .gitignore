@@ -1,38 +1,57 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
 *.pyd
+*.egg
 *.egg-info/
+.eggs/
+pip-wheel-metadata/
+.installed.cfg
 dist/
 build/
+*.whl
+*.tar.gz
 .venv/
 venv/
+env/
 
-# C++
+# C++ / CMake / Ninja
 *.o
 *.obj
+*.a
+*.out
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
 
-# IDE
+# Data & Temporary Artifacts
+*.mldat
+tmp/
+*.log
+
+# IDE & Editors
 .vscode/
 .idea/
 *.swp
+*~
 compile_commands.json
 
-# Testing
+# Testing & Linters
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
+coverage.xml
 htmlcov/
 
 # Documentation
 site/
 
 # Sensitive credentials & environment
+.env
 *.env
 *.pem
 *.key
-venv.
