@@ -10,7 +10,7 @@ Performs automated multi-layer security auditing:
 """
 
 import re
-import subprocess
+import subprocess  # nosec B404 - invokes trusted local tooling via fixed argv
 import sys
 from pathlib import Path
 
@@ -134,61 +134,84 @@ def check_cpp_memory_safety(root_dir: Path) -> list[str]:
     return findings
 
 
-def check_dependency_vulnerabilities() -> list[str]:
-    """Run pip-audit against installed packages and CVE databases."""
+def check_dependency_vulnerabilities(root_dir: Path) -> list[str]:
+    """Run pip-audit against installed packages and pinned requirements.txt."""
     print_header("3. Python Dependency Vulnerability Audit (pip-audit)")
     findings = []
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "pip_audit"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if proc.returncode == 0:
-            print(
-                f"{GREEN}[PASS] pip-audit passed: No known vulnerabilities found.{NC}"
+    audit_commands = [
+        ("installed environment", [sys.executable, "-m", "pip_audit"]),
+    ]
+    req_file = root_dir / "requirements.txt"
+    if req_file.exists():
+        audit_commands.append(
+            (
+                "requirements.txt",
+                [
+                    sys.executable,
+                    "-m",
+                    "pip_audit",
+                    "--disable-pip",
+                    "--no-deps",
+                    "-r",
+                    str(req_file),
+                ],
             )
-        else:
-            findings.append("Known dependency vulnerabilities identified:")
-            findings.extend(proc.stdout.strip().splitlines())
-            print(f"{RED}[FAIL] {proc.stdout.strip()}{NC}")
-    except FileNotFoundError:
-        print(
-            f"{YELLOW}[WARN] pip-audit is not installed. Install with `pip install pip-audit`.{NC}"
         )
-    except subprocess.TimeoutExpired:
-        print(
-            f"{YELLOW}[WARN] pip-audit timed out contacting vulnerability advisory servers.{NC}"
-        )
-    except Exception as e:
-        print(f"{YELLOW}[WARN] pip-audit check failed to run: {e}{NC}")
+
+    for label, cmd in audit_commands:
+        try:
+            proc = subprocess.run(  # nosec B603 - fixed local python -m pip_audit
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if proc.returncode == 0:
+                print(
+                    f"{GREEN}[PASS] pip-audit ({label}): No known vulnerabilities found.{NC}"
+                )
+            else:
+                details = (proc.stdout or proc.stderr).strip()
+                findings.append(f"Known dependency vulnerabilities in {label}:")
+                findings.extend(details.splitlines())
+                print(f"{RED}[FAIL] ({label}) {details}{NC}")
+        except FileNotFoundError:
+            print(
+                f"{YELLOW}[WARN] pip-audit is not installed. Install with `pip install pip-audit`.{NC}"
+            )
+        except subprocess.TimeoutExpired:
+            print(
+                f"{YELLOW}[WARN] pip-audit timed out contacting vulnerability advisory servers ({label}).{NC}"
+            )
+        except Exception as e:
+            print(f"{YELLOW}[WARN] pip-audit check failed to run ({label}): {e}{NC}")
     return findings
 
 
 def check_bandit_static_analysis(root_dir: Path) -> list[str]:
-    """Run bandit AST security linter on Python source code."""
+    """Run bandit AST security linter on Python source and utility scripts."""
     print_header("4. Python AST Security Analysis (bandit)")
     findings = []
-    src_dir = root_dir / "src"
-    if not src_dir.exists():
+    targets = [str(p) for p in (root_dir / "src", root_dir / "scripts") if p.exists()]
+    if not targets:
         return findings
 
     try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "bandit", "-r", str(src_dir), "-q"],
+        proc = subprocess.run(  # nosec B603 - fixed local python -m bandit
+            [sys.executable, "-m", "bandit", "-r", *targets, "-ll", "-q"],
             capture_output=True,
             text=True,
             timeout=30,
         )
         if proc.returncode == 0:
             print(
-                f"{GREEN}[PASS] bandit passed: 0 security issues identified in src/.{NC}"
+                f"{GREEN}[PASS] bandit passed: 0 medium/high security issues identified in src/ and scripts/.{NC}"
             )
         else:
+            details = (proc.stdout or proc.stderr).strip()
             findings.append("Bandit identified potential security risks:")
-            findings.extend(proc.stdout.strip().splitlines())
-            print(f"{RED}[FAIL] Bandit issues found:{NC}\n{proc.stdout.strip()}")
+            findings.extend(details.splitlines())
+            print(f"{RED}[FAIL] Bandit issues found:{NC}\n{details}")
     except FileNotFoundError:
         print(
             f"{YELLOW}[WARN] bandit is not installed. Install with `pip install bandit`.{NC}"
@@ -240,9 +263,9 @@ def main():
 
     secrets = check_secrets_and_credentials(root_dir)
     cpp_safety = check_cpp_memory_safety(root_dir)
-    dep_vulns = check_dependency_vulnerabilities()
+    dep_vulns = check_dependency_vulnerabilities(root_dir)
     bandit_issues = check_bandit_static_analysis(root_dir)
-    gitignore_issues = check_gitignore_hygiene(root_dir)
+    check_gitignore_hygiene(root_dir)
 
     total_issues = len(secrets) + len(cpp_safety) + len(dep_vulns) + len(bandit_issues)
 

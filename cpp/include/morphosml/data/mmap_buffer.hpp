@@ -28,9 +28,10 @@ struct FileHeader {
     uint64_t rows;       ///< Number of rows in dataset.
     uint64_t cols;       ///< Number of features/columns per row.
     uint64_t checksum;   ///< FNV-1a 64-bit hash over raw float64 payload.
-    char reserved[36];   ///< Hardware alignment padding to ensure 64-byte header size.
+    char reserved[32];   ///< Hardware alignment padding to ensure 64-byte header size.
 };
 #pragma pack(pop)
+static_assert(sizeof(FileHeader) == 64, "FileHeader must be 64 bytes");
 
 /**
  * @brief POSIX memory-mapped buffer reader for out-of-core dataset streaming.

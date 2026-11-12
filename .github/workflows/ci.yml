@@ -7,6 +7,9 @@ on:
     branches: [main, develop, "0.*", "*_version"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # Job 1: Test with Docker (Linux only)
   docker-test:
@@ -120,10 +123,12 @@ jobs:
           pip install bandit pip-audit
 
       - name: Run bandit
-        run: bandit -r src/ -ll
+        run: bandit -r src/ scripts/ -ll
 
       - name: Check dependencies
-        run: pip-audit --desc on
+        run: |
+          pip-audit --desc on
+          pip-audit --disable-pip --no-deps -r requirements.txt --desc on
 
   # Job 5: Build wheels (release & pre-release)
   build-wheels:

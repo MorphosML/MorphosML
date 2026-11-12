@@ -3,8 +3,17 @@
 #include "morphosml/simd/simd_ops.hpp"
 #include <cstring>
 #include <iomanip>
+#include <limits>
+#include <stdexcept>
 
 namespace morphosml {
+
+static size_t checked_mul(size_t a, size_t b, const char* context) {
+    if (b != 0 && a > std::numeric_limits<size_t>::max() / b) {
+        throw std::overflow_error(std::string("Matrix dimension overflow in ") + context);
+    }
+    return a * b;
+}
 
 // Global seed state
 static uint64_t g_global_seed = 42;
@@ -20,7 +29,7 @@ uint64_t get_seed() {
 }
 
 Matrix::Matrix(size_t rows, size_t cols, double init_val)
-    : data_(rows * cols, init_val), n_rows(rows), n_cols(cols) {}
+    : data_(checked_mul(rows, cols, "constructor"), init_val), n_rows(rows), n_cols(cols) {}
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<double>> list) {
     n_rows = list.size();
@@ -32,7 +41,7 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> list) {
         throw std::invalid_argument("Matrix columns cannot be empty");
     }
 
-    data_.resize(n_rows * n_cols);
+    data_.resize(checked_mul(n_rows, n_cols, "initializer_list constructor"));
     size_t i = 0;
     for (const auto& row_list : list) {
         if (row_list.size() != n_cols) {
@@ -46,19 +55,21 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> list) {
 Matrix::Matrix(const std::vector<std::vector<double>>& data) {
     n_rows = data.size();
     n_cols = (n_rows == 0) ? 0 : data[0].size();
-    data_.resize(n_rows * n_cols);
+    data_.resize(checked_mul(n_rows, n_cols, "nested vector constructor"));
 
     for (size_t i = 0; i < n_rows; ++i) {
         if (data[i].size() != n_cols) {
             throw std::invalid_argument("Inconsistent row sizes in nested vector");
         }
-        std::memcpy(data_.data() + (i * n_cols), data[i].data(), n_cols * sizeof(double));
+        if (n_cols > 0) {
+            std::memcpy(data_.data() + (i * n_cols), data[i].data(), n_cols * sizeof(double));
+        }
     }
 }
 
 Matrix::Matrix(size_t rows, size_t cols, std::vector<double> flat_data)
     : data_(std::move(flat_data)), n_rows(rows), n_cols(cols) {
-    if (data_.size() != n_rows * n_cols) {
+    if (data_.size() != checked_mul(n_rows, n_cols, "flat_data constructor")) {
         throw std::invalid_argument("Flat data size does not match rows * cols dimensions");
     }
 }
@@ -127,6 +138,9 @@ Matrix Matrix::operator*(const Matrix& other) const {
         throw std::invalid_argument("Matrix inner dimensions must agree for multiplication");
     }
     Matrix result(n_rows, other.n_cols, 0.0);
+    if (n_rows == 0 || n_cols == 0 || other.n_cols == 0) {
+        return result;
+    }
     simd::parallel_gemm(data_.data(), other.data_.data(), result.data_.data(), n_rows, n_cols, other.n_cols);
     return result;
 }
@@ -194,8 +208,10 @@ void Matrix::print() const {
 
 std::vector<std::vector<double>> Matrix::to_std() const {
     std::vector<std::vector<double>> res(n_rows, std::vector<double>(n_cols));
-    for (size_t i = 0; i < n_rows; ++i) {
-        std::memcpy(res[i].data(), data_.data() + (i * n_cols), n_cols * sizeof(double));
+    if (n_cols > 0) {
+        for (size_t i = 0; i < n_rows; ++i) {
+            std::memcpy(res[i].data(), data_.data() + (i * n_cols), n_cols * sizeof(double));
+        }
     }
     return res;
 }

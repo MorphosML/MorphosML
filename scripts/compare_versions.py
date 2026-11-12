@@ -5,19 +5,24 @@ Empirical comparison of memory ingestion latency, memory footprint,
 throughput, and feature capabilities between MorphosML v0.2.0 and v0.3.0.
 """
 
+import atexit
 import os
+import shutil
+import tempfile
 import time
 
 import numpy as np
 
-# Set writable cache directory for Matplotlib
-os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
-import matplotlib
+import morphosml as ml
+
+# Set isolated writable cache directory for Matplotlib
+_mpl_cache_dir = tempfile.mkdtemp(prefix="morphosml_mpl_")
+atexit.register(shutil.rmtree, _mpl_cache_dir, True)
+os.environ["MPLCONFIGDIR"] = _mpl_cache_dir
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-import morphosml as ml
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def benchmark_conversion_latency():

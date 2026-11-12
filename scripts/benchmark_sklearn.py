@@ -6,22 +6,27 @@ across K-Nearest Neighbors, Linear Regression, Logistic Regression,
 and Ingestion Throughput.
 """
 
+import atexit
 import os
+import shutil
+import tempfile
 import time
 
 import numpy as np
-
-# Set writable cache directory for Matplotlib
-os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from sklearn.linear_model import SGDClassifier as SklearnSGDClassifier
 from sklearn.linear_model import SGDRegressor as SklearnSGDRegressor
 from sklearn.neighbors import KNeighborsClassifier as SklearnKNN
 
 import morphosml as ml
+
+# Set isolated writable cache directory for Matplotlib
+_mpl_cache_dir = tempfile.mkdtemp(prefix="morphosml_mpl_")
+atexit.register(shutil.rmtree, _mpl_cache_dir, True)
+os.environ["MPLCONFIGDIR"] = _mpl_cache_dir
+import matplotlib  # noqa: E402
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def benchmark_knn():

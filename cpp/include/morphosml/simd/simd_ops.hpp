@@ -332,8 +332,14 @@ inline void parallel_gemm(
     const double* A, const double* B, double* C,
     size_t M, size_t K, size_t N
 ) {
+    if (M == 0 || N == 0) {
+        return;
+    }
     // Zero out output buffer
     std::memset(C, 0, M * N * sizeof(double));
+    if (K == 0) {
+        return;
+    }
 
 #if defined(MORPHOSML_HAS_OPENMP)
     #pragma omp parallel for schedule(static)

@@ -30,7 +30,7 @@ private:
      */
     struct DistanceIndex {
         double distance;
-        int index;
+        size_t index;
         bool operator<(const DistanceIndex& other) const {
             return distance < other.distance;
         }
@@ -41,7 +41,7 @@ public:
      * @brief Constructs a KNN classifier with parameter \(k\).
      * @param k Number of nearest neighbors (default: 3).
      */
-    explicit KNN(int k = 3) : k_(k) {}
+    explicit KNN(int k = 3);
 
     /**
      * @brief Memorizes training points and labels.

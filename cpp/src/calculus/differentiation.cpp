@@ -10,6 +10,9 @@ double derivative(const std::function<double(double)>& f, double x, int order, d
     if (order < 1 || order > 3) {
         throw std::invalid_argument("Derivative order must be 1, 2, or 3");
     }
+    if (std::isnan(h) || std::isinf(h)) {
+        throw std::invalid_argument("Step size h must be finite");
+    }
 
     if (h <= 0.0) {
         // Machine-epsilon balanced step size
@@ -52,6 +55,9 @@ double derivative(const std::function<double(double)>& f, double x, int order, d
 std::vector<double> gradient(const std::function<double(const std::vector<double>&)>& f,
                              const std::vector<double>& x,
                              double h) {
+    if (!(h > 0.0) || !std::isfinite(h)) {
+        throw std::invalid_argument("Step size h must be finite and strictly positive");
+    }
     const size_t n = x.size();
     std::vector<double> grad(n);
     std::vector<double> x_perturbed = x;
@@ -85,11 +91,17 @@ std::vector<double> gradient(const std::function<double(const std::vector<double
 Matrix jacobian(const std::function<std::vector<double>(const std::vector<double>&)>& f,
                 const std::vector<double>& x,
                 double h) {
+    if (!(h > 0.0) || !std::isfinite(h)) {
+        throw std::invalid_argument("Step size h must be finite and strictly positive");
+    }
     const size_t n = x.size();
     std::vector<double> f0 = f(x);
     const size_t m = f0.size();
 
     Matrix J(m, n);
+    if (m == 0 || n == 0) {
+        return J;
+    }
     std::vector<double> x_perturbed = x;
 
     for (size_t j = 0; j < n; ++j) {
@@ -110,6 +122,10 @@ Matrix jacobian(const std::function<std::vector<double>(const std::vector<double
 
         x_perturbed[j] = xj;
 
+        if (fp2.size() != m || fp1.size() != m || fm1.size() != m || fm2.size() != m) {
+            throw std::runtime_error("Vector-valued function in jacobian returned inconsistent output dimension");
+        }
+
         for (size_t i = 0; i < m; ++i) {
             J(i, j) = (-fp2[i] + 8.0 * fp1[i] - 8.0 * fm1[i] + fm2[i]) / (12.0 * hj);
         }
@@ -121,6 +137,9 @@ Matrix jacobian(const std::function<std::vector<double>(const std::vector<double
 Matrix hessian(const std::function<double(const std::vector<double>&)>& f,
                const std::vector<double>& x,
                double h) {
+    if (!(h > 0.0) || !std::isfinite(h)) {
+        throw std::invalid_argument("Step size h must be finite and strictly positive");
+    }
     const size_t n = x.size();
     Matrix H(n, n);
     std::vector<double> x_p = x;

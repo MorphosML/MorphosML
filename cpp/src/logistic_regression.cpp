@@ -2,6 +2,7 @@
 #include "morphosml/simd/simd_ops.hpp"
 #include <stdexcept>
 #include <cmath>
+#include <cstring>
 #include <algorithm>
 
 namespace morphosml {
@@ -16,8 +17,8 @@ double LogisticRegression::sigmoid(double z) noexcept {
 
 LogisticRegression::LogisticRegression(double learning_rate, size_t epochs, bool fit_intercept)
     : learning_rate_(learning_rate), epochs_(epochs), fit_intercept_(fit_intercept) {
-    if (learning_rate_ <= 0.0) {
-        throw std::invalid_argument("Learning rate must be strictly positive");
+    if (!std::isfinite(learning_rate_) || learning_rate_ <= 0.0) {
+        throw std::invalid_argument("Learning rate must be finite and strictly positive");
     }
 }
 
@@ -147,6 +148,12 @@ double LogisticRegression::score(const Matrix& X, const std::vector<int>& y) con
 }
 
 double LogisticRegression::compute_loss(const Matrix& X, const std::vector<int>& y) const {
+    if (X.rows() != y.size()) {
+        throw std::invalid_argument("Number of samples in X and y must match");
+    }
+    if (y.empty()) {
+        throw std::invalid_argument("Target labels y cannot be empty");
+    }
     auto probs = predict_proba(X);
     constexpr double EPS = 1e-15;
     double total_bce = 0.0;

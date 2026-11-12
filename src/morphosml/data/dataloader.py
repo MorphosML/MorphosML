@@ -193,6 +193,7 @@ class DataLoader:
         if self.prefetch_batches > 0:
             batch_queue: queue.Queue = queue.Queue(maxsize=self.prefetch_batches)
             stop_event = threading.Event()
+            worker_error: list[BaseException] = []
 
             def producer():
                 try:
@@ -200,9 +201,24 @@ class DataLoader:
                         if stop_event.is_set():
                             break
                         batch = self._load_batch(b_indices)
-                        batch_queue.put((b_indices, batch))
+                        while not stop_event.is_set():
+                            try:
+                                batch_queue.put((b_indices, batch), timeout=0.1)
+                                break
+                            except queue.Full:
+                                continue
+                except BaseException as exc:
+                    worker_error.append(exc)
                 finally:
-                    batch_queue.put(None)  # Sentinel to mark completion
+                    while True:
+                        try:
+                            batch_queue.put(
+                                None, timeout=0.1
+                            )  # Sentinel to mark completion
+                            break
+                        except queue.Full:
+                            if stop_event.is_set():
+                                break
 
             worker = threading.Thread(target=producer, daemon=True)
             worker.start()
@@ -211,6 +227,8 @@ class DataLoader:
                 while True:
                     item = batch_queue.get()
                     if item is None:
+                        if worker_error:
+                            raise worker_error[0]
                         break
                     b_indices, batch = item
                     self._sample_offset += len(b_indices)
@@ -223,6 +241,7 @@ class DataLoader:
                         batch_queue.get_nowait()
                     except queue.Empty:
                         break
+                worker.join(timeout=1.0)
         else:
             for b_indices in batch_slices:
                 batch = self._load_batch(b_indices)

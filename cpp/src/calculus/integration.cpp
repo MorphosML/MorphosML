@@ -1,6 +1,7 @@
 #include "morphosml/calculus/integration.hpp"
 #include <stdexcept>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace morphosml {
@@ -8,6 +9,9 @@ namespace calculus {
 
 double trapezoidal(const std::function<double(double)>& f, double a, double b, size_t n) {
     if (n == 0) throw std::invalid_argument("Number of intervals n must be positive");
+    if (!std::isfinite(a) || !std::isfinite(b)) {
+        throw std::invalid_argument("Integration bounds must be finite");
+    }
     if (a == b) return 0.0;
 
     double h = (b - a) / static_cast<double>(n);
@@ -22,10 +26,16 @@ double trapezoidal(const std::function<double(double)>& f, double a, double b, s
 
 double simpson(const std::function<double(double)>& f, double a, double b, size_t n) {
     if (n == 0) throw std::invalid_argument("Number of intervals n must be positive");
+    if (!std::isfinite(a) || !std::isfinite(b)) {
+        throw std::invalid_argument("Integration bounds must be finite");
+    }
     if (a == b) return 0.0;
 
     // Simpson's 1/3 requires an even number of intervals
     if (n % 2 != 0) {
+        if (n == std::numeric_limits<size_t>::max()) {
+            throw std::overflow_error("Number of intervals n overflows size_t");
+        }
         n += 1;
     }
 
@@ -46,11 +56,18 @@ double simpson(const std::function<double(double)>& f, double a, double b, size_
 
 double simpson_38(const std::function<double(double)>& f, double a, double b, size_t n) {
     if (n == 0) throw std::invalid_argument("Number of intervals n must be positive");
+    if (!std::isfinite(a) || !std::isfinite(b)) {
+        throw std::invalid_argument("Integration bounds must be finite");
+    }
     if (a == b) return 0.0;
 
     // Simpson's 3/8 requires n to be a multiple of 3
     if (n % 3 != 0) {
-        n += (3 - (n % 3));
+        const size_t add = 3 - (n % 3);
+        if (n > std::numeric_limits<size_t>::max() - add) {
+            throw std::overflow_error("Number of intervals n overflows size_t");
+        }
+        n += add;
     }
 
     double h = (b - a) / static_cast<double>(n);
@@ -69,6 +86,10 @@ double simpson_38(const std::function<double(double)>& f, double a, double b, si
 }
 
 double gauss_legendre(const std::function<double(double)>& f, double a, double b, size_t n_points) {
+    if (n_points == 0) throw std::invalid_argument("Number of quadrature points must be positive");
+    if (!std::isfinite(a) || !std::isfinite(b)) {
+        throw std::invalid_argument("Integration bounds must be finite");
+    }
     if (a == b) return 0.0;
 
     // Gauss-Legendre quadrature on standard interval [-1, 1] mapped to [a, b]
