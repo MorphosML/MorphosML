@@ -1,10 +1,20 @@
 #include "morphosml/knn.hpp"
 #include <cmath>
+#include <stdexcept>
 
 namespace morphosml {
 
+    KNN::KNN(int k) : k_(k) {
+        if (k_ <= 0) {
+            throw std::invalid_argument("Number of neighbors k must be strictly positive.");
+        }
+    }
+
     // Train the KNN model by storing the training data
     void KNN::fit(const Matrix& X, const std::vector<int>& y) {
+        if (X.rows() == 0 || X.cols() == 0) {
+            throw std::invalid_argument("Training feature matrix X cannot be empty.");
+        }
 
         // Check if the number of rows matches the number of labels
         if (X.rows() != y.size()) {
@@ -25,6 +35,9 @@ namespace morphosml {
         const Vector& a,
         const Vector& b
     ) const {
+        if (a.size() != b.size()) {
+            throw std::invalid_argument("Vectors must have the same dimension for Euclidean distance.");
+        }
 
         double sum = 0.0;
 
@@ -44,6 +57,12 @@ namespace morphosml {
 
     // Predict a single sample
     int KNN::predict_single(const Vector& x) const {
+        if (X_train_.rows() == 0) {
+            throw std::runtime_error("Model not fitted yet");
+        }
+        if (x.size() != X_train_.cols()) {
+            throw std::invalid_argument("Input sample feature dimension does not match fitted model.");
+        }
 
         // Max heap storing the K nearest neighbors
         //
@@ -63,7 +82,7 @@ namespace morphosml {
             // If heap is not full yet, push directly
             if (heap.size() < static_cast<size_t>(k_)) {
 
-                heap.push({dist, static_cast<int>(i)});
+                heap.push({dist, i});
 
             // Otherwise replace the farthest neighbor if current is closer
             } else if (dist < heap.top().distance) {
@@ -72,7 +91,7 @@ namespace morphosml {
                 heap.pop();
 
                 // Add closer neighbor
-                heap.push({dist, static_cast<int>(i)});
+                heap.push({dist, i});
             }
         }
 
@@ -115,6 +134,9 @@ namespace morphosml {
         // Ensure model has been trained
         if (X_train_.rows() == 0) {
             throw std::runtime_error("Model not fitted yet");
+        }
+        if (X.cols() != X_train_.cols()) {
+            throw std::invalid_argument("Input feature count does not match fitted model.");
         }
 
         // Store predictions

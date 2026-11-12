@@ -2,7 +2,10 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 #include <pybind11/functional.h>
+#include <algorithm>
 #include <cstring>
+#include <limits>
+#include <stdexcept>
 
 #include "morphosml/vector.hpp"
 #include "morphosml/matrix.hpp"
@@ -27,14 +30,73 @@ morphosml::Matrix numpy_to_matrix(py::array_t<double, py::array::c_style | py::a
     if (buf.ndim != 2) {
         throw std::runtime_error("The input NumPy array must be 2-dimensional.");
     }
+    if (buf.shape[0] < 0 || buf.shape[1] < 0) {
+        throw std::runtime_error("NumPy array dimensions must be non-negative.");
+    }
 
     const size_t rows = static_cast<size_t>(buf.shape[0]);
     const size_t cols = static_cast<size_t>(buf.shape[1]);
+    if (cols > 0 && rows > std::numeric_limits<size_t>::max() / cols) {
+        throw std::overflow_error("NumPy array dimensions overflow size_t.");
+    }
+    const size_t total = rows * cols;
+    if (total > std::numeric_limits<size_t>::max() / sizeof(double)) {
+        throw std::overflow_error("NumPy array byte size overflows size_t.");
+    }
 
-    std::vector<double> flat_data(rows * cols);
-    std::memcpy(flat_data.data(), buf.ptr, rows * cols * sizeof(double));
+    std::vector<double> flat_data(total);
+    if (total > 0) {
+        std::memcpy(flat_data.data(), buf.ptr, total * sizeof(double));
+    }
 
     return morphosml::Matrix(rows, cols, std::move(flat_data));
+}
+
+morphosml::TensorView make_tensor_view_from_numpy(const py::array& arr) {
+    py::buffer_info buf = arr.request();
+    if (buf.ndim != 2) {
+        throw std::invalid_argument("The input NumPy array must be 2-dimensional.");
+    }
+    if (buf.format != py::format_descriptor<double>::format() || buf.itemsize != sizeof(double)) {
+        throw std::invalid_argument(
+            "TensorView requires a float64 (double) NumPy array; convert with np.ascontiguousarray(arr, dtype=np.float64)."
+        );
+    }
+    if (buf.shape[0] < 0 || buf.shape[1] < 0) {
+        throw std::invalid_argument("NumPy array dimensions must be non-negative.");
+    }
+
+    const size_t rows = static_cast<size_t>(buf.shape[0]);
+    const size_t cols = static_cast<size_t>(buf.shape[1]);
+    if (rows == 0 || cols == 0) {
+        return morphosml::TensorView(nullptr, rows, cols, cols);
+    }
+    if (!buf.ptr) {
+        throw std::invalid_argument("NumPy array buffer pointer cannot be null for non-empty view.");
+    }
+    if (cols > 1 && buf.strides[1] != static_cast<py::ssize_t>(sizeof(double))) {
+        throw std::invalid_argument(
+            "TensorView requires contiguous row elements (column stride == 8 bytes)."
+        );
+    }
+    if (buf.strides[0] < 0 || (buf.strides[0] % static_cast<py::ssize_t>(sizeof(double))) != 0) {
+        throw std::invalid_argument(
+            "TensorView requires non-negative row stride aligned to 8-byte float64 elements."
+        );
+    }
+    const size_t stride = static_cast<size_t>(buf.strides[0]) / sizeof(double);
+    if (rows > 1 && stride < cols) {
+        throw std::invalid_argument(
+            "TensorView requires row-major layout with row stride >= cols."
+        );
+    }
+    const size_t effective_stride = (rows == 1) ? std::max(cols, stride) : stride;
+    return morphosml::TensorView(
+        static_cast<const double*>(buf.ptr),
+        rows,
+        cols,
+        effective_stride
+    );
 }
 
 PYBIND11_MODULE(_core, m) {
@@ -121,7 +183,7 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("shape", [](const morphosml::Matrix& m) {
             return py::make_tuple(m.rows(), m.cols());
         })
-        .def("view", &morphosml::Matrix::view, "Return a zero-copy TensorView over the matrix")
+        .def("view", &morphosml::Matrix::view, py::keep_alive<0, 1>(), "Return a zero-copy TensorView over the matrix")
         .def("row", &morphosml::Matrix::row, py::arg("i"), "Return row as Vector")
         .def("__call__", [](morphosml::Matrix& mat, size_t i, size_t j) -> double& {
             return mat(i, j);
@@ -248,20 +310,10 @@ PYBIND11_MODULE(_core, m) {
     // HPC TensorView (non-owning contiguous 2D view with zero-copy buffer protocol)
     py::class_<morphosml::TensorView>(m, "TensorView", py::buffer_protocol())
         .def(py::init<>())
-        .def(py::init<const morphosml::Matrix&>(), py::arg("mat"))
-        .def(py::init([](py::array_t<double, py::array::c_style | py::array::forcecast> arr) {
-            py::buffer_info buf = arr.request();
-            if (buf.ndim != 2) throw std::invalid_argument("The input NumPy array must be 2-dimensional.");
-            size_t rows = static_cast<size_t>(buf.shape[0]);
-            size_t cols = static_cast<size_t>(buf.shape[1]);
-            size_t stride = static_cast<size_t>(buf.strides[0] / sizeof(double));
-            return morphosml::TensorView(
-                static_cast<const double*>(buf.ptr),
-                rows,
-                cols,
-                stride
-            );
-        }), py::arg("array"))
+        .def(py::init<const morphosml::Matrix&>(), py::arg("mat"), py::keep_alive<1, 2>())
+        .def(py::init([](const py::array& arr) {
+            return make_tensor_view_from_numpy(arr);
+        }), py::arg("array"), py::keep_alive<1, 2>())
         .def_property_readonly("shape", [](const morphosml::TensorView& tv) {
             return py::make_tuple(tv.rows(), tv.cols());
         })
@@ -270,16 +322,18 @@ PYBIND11_MODULE(_core, m) {
         .def("stride", &morphosml::TensorView::stride)
         .def("size", &morphosml::TensorView::size)
         .def("empty", &morphosml::TensorView::empty)
-        .def("slice", &morphosml::TensorView::slice, py::arg("start_row"), py::arg("num_rows"))
-        .def("subview", &morphosml::TensorView::subview, py::arg("start_row"), py::arg("num_rows"), py::arg("start_col"), py::arg("num_cols"))
+        .def("slice", &morphosml::TensorView::slice, py::arg("start_row"), py::arg("num_rows"), py::keep_alive<0, 1>())
+        .def("subview", &morphosml::TensorView::subview, py::arg("start_row"), py::arg("num_rows"), py::arg("start_col"), py::arg("num_cols"), py::keep_alive<0, 1>())
         .def("row", &morphosml::TensorView::row, py::arg("r"))
         .def("to_matrix", &morphosml::TensorView::to_matrix)
         .def("to_numpy", [](const morphosml::TensorView& tv) {
             py::array_t<double> arr({tv.rows(), tv.cols()});
-            py::buffer_info buf = arr.request();
-            double* dst = static_cast<double*>(buf.ptr);
-            for (size_t i = 0; i < tv.rows(); ++i) {
-                std::memcpy(dst + i * tv.cols(), tv.row_ptr(i), tv.cols() * sizeof(double));
+            if (tv.rows() > 0 && tv.cols() > 0) {
+                py::buffer_info buf = arr.request();
+                double* dst = static_cast<double*>(buf.ptr);
+                for (size_t i = 0; i < tv.rows(); ++i) {
+                    std::memcpy(dst + i * tv.cols(), tv.row_ptr(i), tv.cols() * sizeof(double));
+                }
             }
             return arr;
         })
@@ -326,19 +380,9 @@ PYBIND11_MODULE(_core, m) {
             );
         });
 
-    m.def("tensor_view_from_numpy", [](py::array_t<double, py::array::c_style | py::array::forcecast> arr) {
-        py::buffer_info buf = arr.request();
-        if (buf.ndim != 2) throw std::invalid_argument("The input NumPy array must be 2-dimensional.");
-        size_t rows = static_cast<size_t>(buf.shape[0]);
-        size_t cols = static_cast<size_t>(buf.shape[1]);
-        size_t stride = static_cast<size_t>(buf.strides[0] / sizeof(double));
-        return morphosml::TensorView(
-            static_cast<const double*>(buf.ptr),
-            rows,
-            cols,
-            stride
-        );
-    }, "Create a zero-copy TensorView wrapping a 2D NumPy array buffer");
+    m.def("tensor_view_from_numpy", [](const py::array& arr) {
+        return make_tensor_view_from_numpy(arr);
+    }, py::arg("array"), py::keep_alive<0, 1>(), "Create a zero-copy TensorView wrapping a 2D NumPy array buffer");
 
     // IngestionCursor bindings
     py::class_<morphosml::data::IngestionCursor>(m, "IngestionCursor")
@@ -372,8 +416,8 @@ PYBIND11_MODULE(_core, m) {
         .def("size", &morphosml::data::MMapBuffer::size)
         .def("checksum", &morphosml::data::MMapBuffer::checksum)
         .def("filepath", &morphosml::data::MMapBuffer::filepath)
-        .def("get_slice", &morphosml::data::MMapBuffer::get_slice, py::arg("start_row"), py::arg("num_rows"))
-        .def("full_view", &morphosml::data::MMapBuffer::full_view)
+        .def("get_slice", &morphosml::data::MMapBuffer::get_slice, py::arg("start_row"), py::arg("num_rows"), py::keep_alive<0, 1>())
+        .def("full_view", &morphosml::data::MMapBuffer::full_view, py::keep_alive<0, 1>())
         .def_static("write_mldat", &morphosml::data::MMapBuffer::write_mldat, py::arg("filepath"), py::arg("mat"))
         .def_static("write_mldat_numpy", [](const std::string& filepath, py::array_t<double> arr) {
             morphosml::Matrix mat = numpy_to_matrix(arr);

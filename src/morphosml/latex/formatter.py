@@ -6,9 +6,21 @@ rendering (via `_repr_latex_`) for `Matrix`, `Vector`, `LinearRegression`, and `
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import numpy as np
+
+
+def _format_scalar(val: float, precision: int, *, snap_integers: bool = True) -> str:
+    if math.isnan(val):
+        return r"\text{NaN}"
+    if math.isinf(val):
+        return r"\infty" if val > 0 else r"-\infty"
+    if snap_integers and abs(val - round(val)) < 1e-9:
+        return str(round(val))
+    formatted = f"{val:.{precision}f}".rstrip("0").rstrip(".")
+    return "0" if formatted in ("", "-0") else formatted
 
 
 def matrix_to_latex(
@@ -39,9 +51,7 @@ def matrix_to_latex(
         return r"\begin{pmatrix}\end{pmatrix}"
 
     def fmt(val: float) -> str:
-        if abs(val - round(val)) < 1e-9:
-            return str(round(val))
-        return f"{val:.{precision}f}".rstrip("0").rstrip(".")
+        return _format_scalar(val, precision, snap_integers=True)
 
     # If small enough, output all elements
     if rows <= max_rows and cols <= max_cols:
@@ -98,14 +108,12 @@ def vector_to_latex(vec: Any, max_len: int = 8, precision: int = 4) -> str:
     str
         LaTeX column vector formatted in `\\begin{pmatrix} ... \\end{pmatrix}`.
     """
-    n = vec.size() if hasattr(vec, "size") else len(vec)
+    n = vec.size() if callable(getattr(vec, "size", None)) else len(vec)
     if n == 0:
         return r"\begin{pmatrix}\end{pmatrix}"
 
     def fmt(val: float) -> str:
-        if abs(val - round(val)) < 1e-9:
-            return str(round(val))
-        return f"{val:.{precision}f}".rstrip("0").rstrip(".")
+        return _format_scalar(val, precision, snap_integers=True)
 
     if n <= max_len:
         items = [fmt(vec[i]) for i in range(n)]
@@ -148,7 +156,7 @@ def linear_regression_to_latex(
     bias = model.bias
 
     def fmt(val: float) -> str:
-        return f"{val:.{precision}f}".rstrip("0").rstrip(".")
+        return _format_scalar(val, precision, snap_integers=False)
 
     terms = []
     for i, w in enumerate(weights):
@@ -206,7 +214,7 @@ def logistic_regression_to_latex(
     bias = model.bias
 
     def fmt(val: float) -> str:
-        return f"{val:.{precision}f}".rstrip("0").rstrip(".")
+        return _format_scalar(val, precision, snap_integers=False)
 
     terms = []
     for i, w in enumerate(weights):

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include "matrix.hpp"
 #include "vector.hpp"
@@ -59,7 +60,19 @@ public:
      * @param stride Stride in number of elements (must be >= `cols` for valid row-major layouts).
      */
     TensorView(const double* data, size_t rows, size_t cols, size_t stride)
-        : data_(data), rows_(rows), cols_(cols), stride_(stride) {}
+        : data_(data), rows_(rows), cols_(cols), stride_(stride) {
+        if (rows_ > 0 && cols_ > 0) {
+            if (!data_) {
+                throw std::invalid_argument("TensorView data pointer cannot be null for non-empty view");
+            }
+            if (stride_ < cols_) {
+                throw std::invalid_argument("TensorView stride must be >= cols");
+            }
+            if (rows_ > 1 && stride_ > std::numeric_limits<size_t>::max() / (rows_ - 1)) {
+                throw std::overflow_error("TensorView stride * rows overflows size_t");
+            }
+        }
+    }
 
     /**
      * @brief Constructs a dense contiguous `TensorView` where `stride == cols`.
@@ -77,7 +90,7 @@ public:
      * @param mat Matrix to view without copying.
      */
     TensorView(const Matrix& mat)
-        : data_(mat.data()), rows_(mat.rows()), cols_(mat.cols()), stride_(mat.cols()) {}
+        : TensorView(mat.data(), mat.rows(), mat.cols(), mat.cols()) {}
 
     /**
      * @brief Accesses an element at index (r, c) with bounds checking.
@@ -157,6 +170,9 @@ public:
      */
     Matrix to_matrix() const {
         Matrix result(rows_, cols_);
+        if (rows_ == 0 || cols_ == 0) {
+            return result;
+        }
         for (size_t i = 0; i < rows_; ++i) {
             const double* src = row_ptr(i);
             double* dst = result.row_ptr(i);
@@ -169,20 +185,25 @@ public:
      * @brief Returns a zero-copy row slice spanning `num_rows` starting at `start_row`.
      */
     TensorView slice(size_t start_row, size_t num_rows) const {
-        if (start_row + num_rows > rows_) {
+        if (start_row > rows_ || num_rows > rows_ - start_row) {
             throw std::out_of_range("TensorView slice exceeds row bounds");
         }
-        return TensorView(data_ + start_row * stride_, num_rows, cols_, stride_);
+        const double* ptr = (num_rows == 0 || cols_ == 0) ? nullptr : (data_ + start_row * stride_);
+        return TensorView(ptr, num_rows, cols_, stride_);
     }
 
     /**
      * @brief Returns a zero-copy 2D subview spanning `num_rows` and `num_cols`.
      */
     TensorView subview(size_t start_row, size_t num_rows, size_t start_col, size_t num_cols) const {
-        if (start_row + num_rows > rows_ || start_col + num_cols > cols_) {
+        if (start_row > rows_ || num_rows > rows_ - start_row ||
+            start_col > cols_ || num_cols > cols_ - start_col) {
             throw std::out_of_range("TensorView subview exceeds bounds");
         }
-        return TensorView(data_ + start_row * stride_ + start_col, num_rows, num_cols, stride_);
+        const double* ptr = (num_rows == 0 || num_cols == 0)
+            ? nullptr
+            : (data_ + start_row * stride_ + start_col);
+        return TensorView(ptr, num_rows, num_cols, stride_);
     }
 
     /**
@@ -193,7 +214,9 @@ public:
             throw std::out_of_range("TensorView row index out of bounds");
         }
         std::vector<double> row_data(cols_);
-        std::memcpy(row_data.data(), row_ptr(r), cols_ * sizeof(double));
+        if (cols_ > 0) {
+            std::memcpy(row_data.data(), row_ptr(r), cols_ * sizeof(double));
+        }
         return Vector(std::move(row_data));
     }
 
@@ -203,8 +226,10 @@ public:
     bool operator==(const TensorView& other) const noexcept {
         if (rows_ != other.rows_ || cols_ != other.cols_) return false;
         for (size_t r = 0; r < rows_; ++r) {
+            const double* row_a = data_ + (r * stride_);
+            const double* row_b = other.data_ + (r * other.stride_);
             for (size_t c = 0; c < cols_; ++c) {
-                if ((*this)(r, c) != other(r, c)) return false;
+                if (row_a[c] != row_b[c]) return false;
             }
         }
         return true;

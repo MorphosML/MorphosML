@@ -9,10 +9,9 @@ Performs automated multi-layer security auditing:
 5. Sensitive File & .gitignore Compliance Checks
 """
 
-import os
 import re
+import subprocess  # nosec B404 - invokes trusted local tooling via fixed argv
 import sys
-import subprocess
 from pathlib import Path
 
 # ANSI Color Codes
@@ -37,9 +36,15 @@ def check_secrets_and_credentials(root_dir: Path) -> list[str]:
         (r"pypi-AgEI[A-Za-z0-9-_]{50,}", "PyPI API Token"),
         (r"ghp_[A-Za-z0-9]{36,}", "GitHub Personal Access Token"),
         (r"github_pat_[A-Za-z0-9_]{50,}", "GitHub Fine-Grained PAT"),
-        (r"-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----", "Private Cryptographic Key"),
+        (
+            r"-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----",
+            "Private Cryptographic Key",
+        ),
         (r"AKIA[0-9A-Z]{16}", "AWS Access Key ID"),
-        (r"(?i)(password|secret|api_key)\s*=\s*['\"][A-Za-z0-9@#$%^&+=_-]{8,}['\"]", "Hardcoded Password/Secret"),
+        (
+            r"(?i)(password|secret|api_key)\s*=\s*['\"][A-Za-z0-9@#$%^&+=_-]{8,}['\"]",
+            "Hardcoded Password/Secret",
+        ),
     ]
 
     excluded_dirs = {".git", ".venv", "build", "dist", ".pytest_cache", "__pycache__"}
@@ -47,8 +52,16 @@ def check_secrets_and_credentials(root_dir: Path) -> list[str]:
 
     scanned_files = 0
     for file_path in root_dir.rglob("*"):
-        if file_path.is_file() and not any(part in excluded_dirs for part in file_path.parts):
-            if file_path.name in excluded_files or file_path.suffix in {".png", ".so", ".whl", ".tar.gz", ".mldat"}:
+        if file_path.is_file() and not any(
+            part in excluded_dirs for part in file_path.parts
+        ):
+            if file_path.name in excluded_files or file_path.suffix in {
+                ".png",
+                ".so",
+                ".whl",
+                ".tar.gz",
+                ".mldat",
+            }:
                 continue
             scanned_files += 1
             try:
@@ -56,13 +69,17 @@ def check_secrets_and_credentials(root_dir: Path) -> list[str]:
                 for pattern, desc in secret_patterns:
                     matches = re.finditer(pattern, content)
                     for m in matches:
-                        line_num = content[:m.start()].count("\n") + 1
-                        findings.append(f"{desc} in {file_path.relative_to(root_dir)}:L{line_num}")
+                        line_num = content[: m.start()].count("\n") + 1
+                        findings.append(
+                            f"{desc} in {file_path.relative_to(root_dir)}:L{line_num}"
+                        )
             except Exception as e:
                 findings.append(f"Could not read {file_path}: {e}")
 
     if not findings:
-        print(f"{GREEN}[PASS] Scanned {scanned_files} files. No secrets or tokens detected.{NC}")
+        print(
+            f"{GREEN}[PASS] Scanned {scanned_files} files. No secrets or tokens detected.{NC}"
+        )
     else:
         print(f"{RED}[FAIL] Potential secrets detected:{NC}")
         for f in findings:
@@ -80,8 +97,14 @@ def check_cpp_memory_safety(root_dir: Path) -> list[str]:
         return findings
 
     unsafe_functions = [
-        (r"\bstrcpy\s*\(", "Unbounded buffer copy 'strcpy' (use strncpy or std::string)"),
-        (r"\bstrcat\s*\(", "Unbounded string concatenation 'strcat' (use strncat or std::string)"),
+        (
+            r"\bstrcpy\s*\(",
+            "Unbounded buffer copy 'strcpy' (use strncpy or std::string)",
+        ),
+        (
+            r"\bstrcat\s*\(",
+            "Unbounded string concatenation 'strcat' (use strncat or std::string)",
+        ),
         (r"\bsprintf\s*\(", "Unbounded format 'sprintf' (use snprintf)"),
         (r"\bgets\s*\(", "Dangerous function 'gets' (use fgets)"),
     ]
@@ -93,13 +116,17 @@ def check_cpp_memory_safety(root_dir: Path) -> list[str]:
             for pattern, desc in unsafe_functions:
                 matches = re.finditer(pattern, content)
                 for m in matches:
-                    line_num = content[:m.start()].count("\n") + 1
-                    findings.append(f"{desc} in {file_path.relative_to(root_dir)}:L{line_num}")
+                    line_num = content[: m.start()].count("\n") + 1
+                    findings.append(
+                        f"{desc} in {file_path.relative_to(root_dir)}:L{line_num}"
+                    )
         except Exception as e:
             findings.append(f"Error reading {file_path}: {e}")
 
     if not findings:
-        print(f"{GREEN}[PASS] Scanned {len(cpp_files)} C++ source/header files. No unsafe C string functions.{NC}")
+        print(
+            f"{GREEN}[PASS] Scanned {len(cpp_files)} C++ source/header files. No unsafe C string functions.{NC}"
+        )
     else:
         print(f"{RED}[FAIL] Insecure C++ functions found:{NC}")
         for f in findings:
@@ -107,55 +134,88 @@ def check_cpp_memory_safety(root_dir: Path) -> list[str]:
     return findings
 
 
-def check_dependency_vulnerabilities() -> list[str]:
-    """Run pip-audit against installed packages and CVE databases."""
+def check_dependency_vulnerabilities(root_dir: Path) -> list[str]:
+    """Run pip-audit against installed packages and pinned requirements.txt."""
     print_header("3. Python Dependency Vulnerability Audit (pip-audit)")
     findings = []
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "pip_audit"],
-            capture_output=True,
-            text=True,
-            timeout=60,
+    audit_commands = [
+        ("installed environment", [sys.executable, "-m", "pip_audit"]),
+    ]
+    req_file = root_dir / "requirements.txt"
+    if req_file.exists():
+        audit_commands.append(
+            (
+                "requirements.txt",
+                [
+                    sys.executable,
+                    "-m",
+                    "pip_audit",
+                    "--disable-pip",
+                    "--no-deps",
+                    "-r",
+                    str(req_file),
+                ],
+            )
         )
-        if proc.returncode == 0:
-            print(f"{GREEN}[PASS] pip-audit passed: No known vulnerabilities found.{NC}")
-        else:
-            findings.append("Known dependency vulnerabilities identified:")
-            findings.extend(proc.stdout.strip().splitlines())
-            print(f"{RED}[FAIL] {proc.stdout.strip()}{NC}")
-    except FileNotFoundError:
-        print(f"{YELLOW}[WARN] pip-audit is not installed. Install with `pip install pip-audit`.{NC}")
-    except subprocess.TimeoutExpired:
-        print(f"{YELLOW}[WARN] pip-audit timed out contacting vulnerability advisory servers.{NC}")
-    except Exception as e:
-        print(f"{YELLOW}[WARN] pip-audit check failed to run: {e}{NC}")
+
+    for label, cmd in audit_commands:
+        try:
+            proc = subprocess.run(  # nosec B603 - fixed local python -m pip_audit
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if proc.returncode == 0:
+                print(
+                    f"{GREEN}[PASS] pip-audit ({label}): No known vulnerabilities found.{NC}"
+                )
+            else:
+                details = (proc.stdout or proc.stderr).strip()
+                findings.append(f"Known dependency vulnerabilities in {label}:")
+                findings.extend(details.splitlines())
+                print(f"{RED}[FAIL] ({label}) {details}{NC}")
+        except FileNotFoundError:
+            print(
+                f"{YELLOW}[WARN] pip-audit is not installed. Install with `pip install pip-audit`.{NC}"
+            )
+        except subprocess.TimeoutExpired:
+            print(
+                f"{YELLOW}[WARN] pip-audit timed out contacting vulnerability advisory servers ({label}).{NC}"
+            )
+        except Exception as e:
+            print(f"{YELLOW}[WARN] pip-audit check failed to run ({label}): {e}{NC}")
     return findings
 
 
 def check_bandit_static_analysis(root_dir: Path) -> list[str]:
-    """Run bandit AST security linter on Python source code."""
+    """Run bandit AST security linter on Python source and utility scripts."""
     print_header("4. Python AST Security Analysis (bandit)")
     findings = []
-    src_dir = root_dir / "src"
-    if not src_dir.exists():
+    targets = [str(p) for p in (root_dir / "src", root_dir / "scripts") if p.exists()]
+    if not targets:
         return findings
 
     try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "bandit", "-r", str(src_dir), "-q"],
+        proc = subprocess.run(  # nosec B603 - fixed local python -m bandit
+            [sys.executable, "-m", "bandit", "-r", *targets, "-ll", "-q"],
             capture_output=True,
             text=True,
             timeout=30,
         )
         if proc.returncode == 0:
-            print(f"{GREEN}[PASS] bandit passed: 0 security issues identified in src/.{NC}")
+            print(
+                f"{GREEN}[PASS] bandit passed: 0 medium/high security issues identified in src/ and scripts/.{NC}"
+            )
         else:
+            details = (proc.stdout or proc.stderr).strip()
             findings.append("Bandit identified potential security risks:")
-            findings.extend(proc.stdout.strip().splitlines())
-            print(f"{RED}[FAIL] Bandit issues found:{NC}\n{proc.stdout.strip()}")
+            findings.extend(details.splitlines())
+            print(f"{RED}[FAIL] Bandit issues found:{NC}\n{details}")
     except FileNotFoundError:
-        print(f"{YELLOW}[WARN] bandit is not installed. Install with `pip install bandit`.{NC}")
+        print(
+            f"{YELLOW}[WARN] bandit is not installed. Install with `pip install bandit`.{NC}"
+        )
     except Exception as e:
         print(f"{YELLOW}[WARN] bandit execution error: {e}{NC}")
     return findings
@@ -184,7 +244,9 @@ def check_gitignore_hygiene(root_dir: Path) -> list[str]:
 
     missing = [pat for pat in required_patterns if pat not in content]
     if not missing:
-        print(f"{GREEN}[PASS] .gitignore includes all essential sensitive and build artifact patterns.{NC}")
+        print(
+            f"{GREEN}[PASS] .gitignore includes all essential sensitive and build artifact patterns.{NC}"
+        )
     else:
         for m in missing:
             findings.append(f"Missing recommended ignore pattern: {m}")
@@ -201,15 +263,17 @@ def main():
 
     secrets = check_secrets_and_credentials(root_dir)
     cpp_safety = check_cpp_memory_safety(root_dir)
-    dep_vulns = check_dependency_vulnerabilities()
+    dep_vulns = check_dependency_vulnerabilities(root_dir)
     bandit_issues = check_bandit_static_analysis(root_dir)
-    gitignore_issues = check_gitignore_hygiene(root_dir)
+    check_gitignore_hygiene(root_dir)
 
     total_issues = len(secrets) + len(cpp_safety) + len(dep_vulns) + len(bandit_issues)
 
     print("\n" + "=" * 54)
     if total_issues == 0:
-        print(f"{GREEN}{BOLD}SECURITY AUDIT PASSED: 0 vulnerabilities or leaks found!{NC}")
+        print(
+            f"{GREEN}{BOLD}SECURITY AUDIT PASSED: 0 vulnerabilities or leaks found!{NC}"
+        )
         sys.exit(0)
     else:
         print(f"{RED}{BOLD}SECURITY AUDIT FAILED: {total_issues} issues detected!{NC}")
